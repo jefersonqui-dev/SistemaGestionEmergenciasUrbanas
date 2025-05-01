@@ -2,7 +2,7 @@ package com.devsenior.jquiguantar.SGEU.model.emergencies;
 
 import com.devsenior.jquiguantar.SGEU.model.util.Ubicacion;
 import java.util.Date; //Usamos Date para los tiempos
-import java.util.concurrent.TimeUnit; //para calcular la diferencia de tiempos
+//import java.util.concurrent.TimeUnit; //para calcular la diferencia de tiempos
 
 public class Emergencia {
     // Atributos de la clase Emergencia
@@ -70,7 +70,7 @@ public class Emergencia {
         return progresoAtencion;
     }
 
-    public boolean getAtendida() {
+    public boolean isAtendida() {
         return atendida;
     }
 
@@ -113,12 +113,7 @@ public class Emergencia {
         if (!atendida) {
             return new Date().getTime() - tiempoRegistro.getTime(); // en milisegundos
         } else {
-            return calcularTiempoRealRespuestaMillis() + (tiempoFinAtencion.getTime() - tiempoInicioAtencion.getTime()); // Tiempo
-                                                                                                                         // total
-                                                                                                                         // si
-                                                                                                                         // ya
-                                                                                                                         // fue
-                                                                                                                         // atendida
+            return calcularTiempoRealRespuestaMillis() + (tiempoFinAtencion.getTime() - tiempoInicioAtencion.getTime());
         }
     }
 
