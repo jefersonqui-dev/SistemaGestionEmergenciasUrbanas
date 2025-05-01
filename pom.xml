@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.devsenior.jquiguantar</groupId>
-	<artifactId>Sistema-Gestion-Emergencias-Urbanas</artifactId>
+	<artifactId>SGEU</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>Sistema-Gestion-Emergencias-Urbanas</name>
+	<name>SGEU</name>
 	<description>Reto2</description>
 	<url/>
 	<licenses>

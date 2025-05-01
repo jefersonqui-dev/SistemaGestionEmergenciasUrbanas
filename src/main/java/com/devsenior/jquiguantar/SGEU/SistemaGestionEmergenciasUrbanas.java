@@ -1,4 +1,4 @@
-package com.devsenior.jquiguantar.Sistema_Gestion_Emergencias_Urbanas;
+package com.devsenior.jquiguantar.SGEU;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
