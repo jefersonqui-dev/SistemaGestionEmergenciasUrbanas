@@ -33,6 +33,16 @@ public class Vehiculo extends Recurso {
         return ubicacionBase;
     }
 
+    /**
+     * Gasta combustible en base a la distancia recorrida por el vehiculo. El
+     * gasto se calcula como la distancia recorrida multiplicada por el consumo
+     * por distancia del vehiculo. Si el nivel de combustible es menor que el
+     * gasto, se establece en cero.
+     * 
+     * @param distanciaRecorrida la distancia recorrida por el vehiculo
+     * @see #getNivelCombustible()
+     * @see #getConsumoPorDistancia()
+     */
     public void gastarCombustible(double distanciaRecorrida) {
         double gasto = distanciaRecorrida * consumoPorDistancia;
         this.nivelCombustible = Math.max(0, nivelCombustible - gasto); // No bajar de cero
@@ -59,6 +69,16 @@ public class Vehiculo extends Recurso {
                                                                                          // suficiente combustible
     }
 
+    /**
+     * Mueve el vehiculo a una ubicación dada, gastando combustible en base a la
+     * distancia recorrida. El gasto se calcula como la distancia recorrida
+     * multiplicada por el consumo por distancia del vehiculo. Si el nivel de
+     * combustible es menor que el gasto, se establece en cero.
+     * 
+     * @param destino            la ubicación a la que se quiere mover el vehiculo
+     * @param distanciaCalculada la distancia entre la ubicación actual y el destino
+     * @see #gastarCombustible(double)
+     */
     public void moverA(Ubicacion destino, double distanciaCalculada) {
         gastarCombustible(distanciaCalculada);
         this.ubicacionActual = destino; // Actualiza la ubicación
