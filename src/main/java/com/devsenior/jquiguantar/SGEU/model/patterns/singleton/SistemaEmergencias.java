@@ -10,7 +10,7 @@ import com.devsenior.jquiguantar.SGEU.model.config.RecursoConfig; // Importar Re
 
 // Importaciones para JSON (Jackson)
 import com.fasterxml.jackson.databind.ObjectMapper;
-// import com.fasterxml.jackson.databind.JsonSerializable.Base;
+import com.fasterxml.jackson.databind.JsonSerializable.Base;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
