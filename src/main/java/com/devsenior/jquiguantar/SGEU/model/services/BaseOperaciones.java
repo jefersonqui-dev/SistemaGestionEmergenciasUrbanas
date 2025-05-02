@@ -5,13 +5,14 @@ import com.devsenior.jquiguantar.SGEU.model.resources.Recurso;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergencia;
 import com.devsenior.jquiguantar.SGEU.model.interfaces.Responder;
 import com.devsenior.jquiguantar.SGEU.model.resources.EstadoRecurso;
+import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observer;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 //Esta base de operaciones implementa Responder para representar la respueta desde esa base
-public class BaseOperaciones implements Responder {
+public class BaseOperaciones implements Responder, Observer {
     private String id;
     private String nombre;
     private Ubicacion ubicacion;
@@ -93,6 +94,34 @@ public class BaseOperaciones implements Responder {
     public void evaluarEstado(Emergencia emergencia) {
         System.out.println(getTipoServicioAsociado() + " desde " + getNombre() + " evaluando estado de emergencia: "
                 + emergencia.getId());
+    }
+
+    // Implementacion del metodo de la interfaz Observer
+    @Override
+    public void update(Emergencia nuevaEmergencia) {
+        System.out.println(getNombre() + " (" + getTipoServicioAsociado() + ") notificada de nueva emergencia: "
+                + nuevaEmergencia.getTipo() + " en " + nuevaEmergencia.getUbicacion() + " (ID: "
+                + nuevaEmergencia.getId() + ")");
+        boolean reacciona = false;
+        // Una base de bomberos reacciona a incendios, una base de policia a robos, una
+        // ambulancia a accidentes
+        switch (getTipoServicioAsociado()) {
+            case "BOMBEROS":
+                reacciona = (nuevaEmergencia
+                        .getTipo() == com.devsenior.jquiguantar.SGEU.model.emergencies.TipoEmergencia.INCENDIO);
+                break;
+            case "AMBULANCIA":
+                reacciona = nuevaEmergencia
+                        .getTipo() == com.devsenior.jquiguantar.SGEU.model.emergencies.TipoEmergencia.ACCIDENTE_VEHICULAR;
+                break;
+            case "POLICIA":
+                reacciona = nuevaEmergencia
+                        .getTipo() == com.devsenior.jquiguantar.SGEU.model.emergencies.TipoEmergencia.ROBO;
+                break;
+        }
+        if (reacciona) {
+            System.out.println(" -> " + getNombre() + "Considera esta Emergencia");
+        }
     }
 
     @Override

@@ -10,8 +10,11 @@ import com.devsenior.jquiguantar.SGEU.model.config.RecursoConfig; // Importar Re
 
 // Importaciones para JSON (Jackson)
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonSerializable.Base;
+//import com.fasterxml.jackson.databind.JsonSerializable.Base;
 import com.fasterxml.jackson.core.type.TypeReference;
+
+import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observer;
+import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observable; // Importar Subject
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +23,7 @@ import java.util.List;
 // import java.util.Date;
 import java.util.stream.Collectors; // Para usar streams
 
-public class SistemaEmergencias {
+public class SistemaEmergencias implements Observable {
     private static SistemaEmergencias instance;
 
     // Colecciones Principales del sistema
@@ -29,6 +32,7 @@ public class SistemaEmergencias {
 
     // Objero para la logica del mapa urbano(clase interna)
     private MapaUrbano mapa;
+    private List<Observer> observers; // Lista de observadores
 
     // Constructor privado
     private SistemaEmergencias() {
@@ -37,6 +41,7 @@ public class SistemaEmergencias {
         this.mapa = new MapaUrbano(); // crear instancia de la clase interna
 
         inicializarSistemaDesdeJson("bases.json"); // Inicializar el sistema desde JSON
+        addBasesAsObservers(); // Añadir las bases como observadores
     }
 
     public static synchronized SistemaEmergencias getInstance() {
@@ -108,11 +113,44 @@ public class SistemaEmergencias {
         }
     }
 
+    private void addBasesAsObservers() {
+        for (BaseOperaciones base : this.basesOperaciones) {
+            this.addObserver(base); // Añadir cada base como observador del sistema
+        }
+        System.out.println("Todas las bases de Operaciones registradas como observadores.");
+    }
+
     // Método para añadir una emergencia al sistema
     public void registrarEmergencia(Emergencia emergencia) {
         this.emergenciasActivas.add(emergencia);
         System.out.println("Emergencia registrada: " + emergencia.getTipo() + " en "
                 + emergencia.getUbicacion() + ", (ID: " + emergencia.getId() + ")");
+    }
+
+    @Override
+    public void addObserver(Observer o) {
+        if (o != null && !observers.contains(o)) {
+            this.observers.add(o);
+        }
+    }
+
+    @Override
+    public void removeObserver(Observer o) {
+        if (o != null) {
+            this.observers.remove(o);
+        }
+    }
+
+    @Override
+    public void notifyObservers(Object event) {
+        // Notificamos a cada observador sobre el evento (la nueva emergencia)
+        if (event instanceof Emergencia) {
+            Emergencia nuevEmergencia = (Emergencia) event;
+            System.out.println("Notificamos a los observadores sobre una nueva emergencia...");
+            for (Observer observer : this.observers) {
+                observer.update(nuevEmergencia); // Llamamos al método update de cada observador
+            }
+        }
     }
 
     public List<Emergencia> getEmergenciasActivas() {
