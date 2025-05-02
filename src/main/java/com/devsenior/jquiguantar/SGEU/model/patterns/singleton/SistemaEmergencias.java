@@ -2,6 +2,7 @@ package com.devsenior.jquiguantar.SGEU.model.patterns.singleton;
 
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergencia;
 import com.devsenior.jquiguantar.SGEU.model.services.BaseOperaciones; // Importar BaseOperaciones
+import com.devsenior.jquiguantar.SGEU.model.resources.EstadoRecurso;
 import com.devsenior.jquiguantar.SGEU.model.resources.Recurso;
 import com.devsenior.jquiguantar.SGEU.model.resources.Vehiculo; // Importar Vehiculo
 import com.devsenior.jquiguantar.SGEU.model.util.Ubicacion;
@@ -16,11 +17,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observer;
 import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observable; // Importar Subject
 
+import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PrioridadAltaStrategy;
+import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PriorizacionStrategy;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-// import java.util.Date;
+import java.util.Date;
 import java.util.stream.Collectors; // Para usar streams
 
 public class SistemaEmergencias implements Observable {
@@ -34,11 +38,16 @@ public class SistemaEmergencias implements Observable {
     private MapaUrbano mapa;
     private List<Observer> observers; // Lista de observadores
 
+    // Estrategia de priorización de emergencias
+    private PriorizacionStrategy estrategiaPriorizacionActual;
+
     // Constructor privado
     private SistemaEmergencias() {
         this.emergenciasActivas = new ArrayList<>();
         this.basesOperaciones = new ArrayList<>();
         this.mapa = new MapaUrbano(); // crear instancia de la clase interna
+        this.observers = new ArrayList<>();
+        this.estrategiaPriorizacionActual = new PrioridadAltaStrategy();
 
         inicializarSistemaDesdeJson("bases.json"); // Inicializar el sistema desde JSON
         addBasesAsObservers(); // Añadir las bases como observadores
@@ -120,6 +129,19 @@ public class SistemaEmergencias implements Observable {
         System.out.println("Todas las bases de Operaciones registradas como observadores.");
     }
 
+    // Metodo para cambiar la estrategia de priorizacion en tiempo de ejecucion
+    public void setEstrategiaPriorizacionActual(PriorizacionStrategy estrategiPriorizacionActual) {
+        this.estrategiaPriorizacionActual = estrategiPriorizacionActual;
+        System.out.println(
+                "Estrategia de priorización actualizada a: " + estrategiPriorizacionActual.getClass().getSimpleName());
+    }
+
+    // Metodo para obtener la proxima emergencia a atender segun la estrategia
+    // actual
+    public Emergencia getProximaEmergenciaAPriorizar() {
+        return this.estrategiaPriorizacionActual.seleccionarSiguienteEmergencia(this.emergenciasActivas);
+    }
+
     // Método para añadir una emergencia al sistema
     public void registrarEmergencia(Emergencia emergencia) {
         this.emergenciasActivas.add(emergencia);
@@ -161,6 +183,12 @@ public class SistemaEmergencias implements Observable {
         return basesOperaciones;
     }
 
+    public List<Recurso> getAllRecursos() {
+        return this.basesOperaciones.stream()
+                .flatMap(base -> base.getRecursosEnBase().stream())
+                .collect(Collectors.toList());
+    }
+
     // Metodo para obtener todos los recursos de todas las bases
     public List<Recurso> getAllRecursosDisponibles() {
         return this.basesOperaciones.stream()
@@ -190,6 +218,223 @@ public class SistemaEmergencias implements Observable {
             }
         }
         return baseMasCercana;
+    }
+
+    public List<Recurso> sugerirRecursosAutomaticos(Emergencia emergencia) {
+        List<Recurso> sugerencias = new ArrayList<>();
+
+        // Determinar qué tipo(s) de servicio y recursos necesita esta emergencia
+        String tipoServicioRequerido = null;
+        String tipoRecursoPrincipal; // Ej. Camión, Ambulancia, Patrulla
+
+        switch (emergencia.getTipo()) {
+            case INCENDIO:
+                tipoServicioRequerido = "BOMBEROS";
+                tipoRecursoPrincipal = "Camión de Bomberos"; // Asumimos nombres exactos del JSON
+                break;
+            case ACCIDENTE_VEHICULAR:
+                tipoServicioRequerido = "AMBULANCIA";
+                tipoRecursoPrincipal = "Ambulancia"; // Asumimos nombres exactos del JSON
+                break;
+            case ROBO:
+                tipoServicioRequerido = "POLICIA";
+                tipoRecursoPrincipal = "Patrulla Policial"; // Asumimos nombres exactos del JSON
+                break;
+            default:
+                // Para otros tipos, puede ser más genérico o no sugerir automáticamente
+                System.out.println("No hay sugerencia automática de recursos para este tipo de emergencia.");
+                return sugerencias; // Lista vacía
+        }
+
+        // Encontrar la base más cercana de ese tipo de servicio (Paso 17)
+        BaseOperaciones baseMasCercana = encontrarBaseMasCercana(emergencia, tipoServicioRequerido);
+
+        if (baseMasCercana != null) {
+            System.out.println("Base sugerida: " + baseMasCercana.getNombre() + " ("
+                    + baseMasCercana.getTipoServicioAsociado() + ")");
+
+            // Calcular distancia a la base sugerida para verificar combustible
+            double distanciaALaBase = this.mapa.calcularDistancia(emergencia.getUbicacion(),
+                    baseMasCercana.getUbicacion());
+
+            // Obtener recursos disponibles y con suficiente combustible de esa base (Paso
+            // 20)
+            List<Recurso> recursosDisponiblesEnBase = baseMasCercana.getRecursosDisponibles();
+
+            // Sugerir un recurso principal (ej. un camión, una ambulancia, una patrulla) si
+            // está disponible y con combustible
+            Recurso recursoPrincipalSugerido = recursosDisponiblesEnBase.stream()
+                    .filter(r -> r.getTipo().equalsIgnoreCase(tipoRecursoPrincipal))
+                    .filter(r -> {
+                        if (r instanceof Vehiculo) {
+                            Vehiculo v = (Vehiculo) r;
+                            // Verificar si tiene suficiente combustible para ir de su base a la emergencia
+                            return v.tieneSuficienteCombustible(distanciaALaBase);
+                        }
+                        return true; // Recursos no vehiculares siempre tienen suficiente "combustible"
+                    })
+                    .findFirst() // Sugerir solo el primero disponible de ese tipo
+                    .orElse(null);
+
+            if (recursoPrincipalSugerido != null) {
+                sugerencias.add(recursoPrincipalSugerido);
+                System.out.println("Recurso principal sugerido: " + recursoPrincipalSugerido);
+
+                // Opcional: Sugerir personal adicional de la misma base si está disponible
+                List<Recurso> personalSugerido = recursosDisponiblesEnBase.stream()
+                        .filter(r -> r.getTipo().toLowerCase().contains("personal")
+                                || r.getTipo().toLowerCase().contains("oficial")) // Tipos de personal/oficial
+                        .limit(2) // Sugerir un máximo de 2 unidades de personal, por ejemplo
+                        .collect(Collectors.toList());
+
+                sugerencias.addAll(personalSugerido);
+                if (!personalSugerido.isEmpty()) {
+                    System.out.println("Personal sugerido adicional: " + personalSugerido.size() + " unidades.");
+                }
+            } else {
+                System.out.println("No se encontró recurso principal disponible (" + tipoRecursoPrincipal
+                        + ") en la base sugerida con suficiente combustible.");
+                // Podrías buscar en otras bases si la principal no tiene
+            }
+
+        } else {
+            System.out.println("No se encontró una base de operaciones relevante (" + tipoServicioRequerido
+                    + ") para esta emergencia.");
+        }
+
+        return sugerencias; // Retorna la lista de recursos sugeridos (puede estar vacía)
+    }
+
+    public boolean asignarRecursosAEmergencia(Emergencia emergencia, List<Recurso> recursosAAsignar) {
+        if (emergencia == null || recursosAAsignar == null || recursosAAsignar.isEmpty()) {
+            System.out.println("Error: No se especificó la emergencia o los recursos a asignar.");
+            return false;
+        }
+
+        boolean asignacionExitosa = true;
+        System.out.println("Intentando asignar " + recursosAAsignar.size() + " recursos a Emergencia ID "
+                + emergencia.getId() + "...");
+
+        // La primera vez que se asignan recursos, marca el inicio de la atención real
+        if (emergencia.getTiempoInicioAtencion() == null) {
+            emergencia.setTiempoInicioAtencion(new Date());
+            System.out.println("Inicio de atención registrado para Emergencia ID " + emergencia.getId());
+        }
+
+        // Verificar disponibilidad y combustible antes de asignar (re-verificación)
+        // (Paso 20)
+        List<Recurso> recursosRealmenteAsignados = new ArrayList<>();
+        double distanciaAEmergencia = this.mapa.calcularDistancia(
+                // Asumimos que los recursos inician desde su base de operaciones
+                recursosAAsignar.get(0) instanceof Vehiculo ? ((Vehiculo) recursosAAsignar.get(0)).getUbicacionBase()
+                        : null, // Origen: base del primer vehículo (simplificación)
+                emergencia.getUbicacion() // Destino: ubicación de la emergencia
+        );
+        if (distanciaAEmergencia <= 0 && recursosAAsignar.get(0) instanceof Vehiculo) {
+            // Si la distancia es 0 o negativa y es un vehículo, algo anda mal con el
+            // cálculo o la ubicación
+            System.err.println("Advertencia: Distancia calculada para la asignación no válida (" + distanciaAEmergencia
+                    + " km). No se simulará gasto de combustible para este viaje.");
+            distanciaAEmergencia = 0; // Neutralizar gasto de combustible si la distancia no es válida
+        } else if (!(recursosAAsignar.get(0) instanceof Vehiculo)) {
+            distanciaAEmergencia = 0; // No hay gasto de combustible para recursos no vehiculares
+        }
+
+        for (Recurso recurso : recursosAAsignar) {
+            // En una implementación real, buscarías el recurso en la lista global de
+            // recursos
+            // Para simplificar, asumimos que los recursos en la lista recursosAAsignar ya
+            // son referencias válidas
+            // y verificamos su estado y combustible en el momento de la asignación
+            if (recurso.getEstado() == EstadoRecurso.DISPONIBLE) {
+                boolean puedeAsignarse = true;
+                if (recurso instanceof Vehiculo) {
+                    Vehiculo vehiculo = (Vehiculo) recurso;
+                    // Verificar combustible para el viaje de ida a la emergencia
+                    if (!vehiculo.tieneSuficienteCombustible(distanciaAEmergencia)) {
+                        System.out.println("Recurso no asignado: " + vehiculo
+                                + " - Combustible insuficiente para el viaje estimado ("
+                                + String.format("%.2f", distanciaAEmergencia) + " km).");
+                        puedeAsignarse = false;
+                        asignacionExitosa = false; // Si al menos uno falla, la asignación general no es 100% exitosa
+                    } else {
+                        // Simular el viaje y gasto de combustible (Paso 21)
+                        vehiculo.moverA(emergencia.getUbicacion(), distanciaAEmergencia);
+                        System.out.println("Simulando viaje de " + vehiculo.getTipo() + " (ID: " + vehiculo.getId()
+                                + ") a emergencia ID " + emergencia.getId() + " ("
+                                + String.format("%.2f", distanciaAEmergencia) + " km).");
+                    }
+                }
+
+                if (puedeAsignarse) {
+                    recurso.asignarEmergencia(emergencia); // Marcar como ocupado y asignar la emergencia
+                    recursosRealmenteAsignados.add(recurso);
+                    System.out.println("Recurso asignado: " + recurso);
+                }
+
+            } else {
+                System.out.println("Recurso no asignado: " + recurso + " - No está disponible.");
+                asignacionExitosa = false; // Si al menos uno falla, la asignación general no es 100% exitosa
+            }
+        }
+
+        if (recursosRealmenteAsignados.isEmpty()) {
+            System.out.println("No se pudo asignar ningún recurso válido a Emergencia ID " + emergencia.getId());
+            return false; // Ningún recurso fue asignado
+        } else {
+            // Opcional: Asociar los recursos asignados a la emergencia de alguna manera en
+            // la clase Emergencia
+            // emergencia.addRecursosAsignados(recursosRealmenteAsignados); // Necesitarías
+            // un método addRecursosAsignados en Emergencia
+            System.out.println("Asignación de recursos completada para Emergencia ID " + emergencia.getId()
+                    + ". Recursos asignados: " + recursosRealmenteAsignados.size());
+            return asignacionExitosa; // Retorna si TODOS los recursos solicitados fueron asignados exitosamente
+        }
+    }
+
+    // METODO AUXILIAR PARA ENCONTRAR UN RECURSO POR ID, UTIL PARA ASIGNACION MANUAL
+    public Recurso getRecursoById(int idRecurso) {
+        return this.basesOperaciones.stream()
+                .flatMap(base -> base.getRecursosEnBase().stream())
+                .filter(r -> r.getId() == idRecurso)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public boolean iniciarRepostajeRecurso(int idRecurso) {
+        Recurso recurso = getRecursoById(idRecurso);
+        if (recurso instanceof Vehiculo) {
+            Vehiculo vehiculo = (Vehiculo) recurso;
+            if (vehiculo.getEstado() == EstadoRecurso.DISPONIBLE) {
+                vehiculo.iniciarRepostaje();
+                return true;
+            } else {
+                System.out.println("No se puede iniciar repostaje para " + vehiculo.getTipo() + " (ID: "
+                        + vehiculo.getId() + "). Estado actual: " + vehiculo.getEstado());
+                return false;
+            }
+        } else {
+            System.out.println("El Recurso con ID " + idRecurso + " no es un vehículo y no requiere repostaje.");
+            return false;
+        }
+    }
+
+    public boolean completarRepostajeRecurso(int idRecurso) {
+        Recurso recurso = getRecursoById(idRecurso);
+        if (recurso instanceof Vehiculo) {
+            Vehiculo vehiculo = (Vehiculo) recurso;
+            if (vehiculo.getEstado() == EstadoRecurso.REPOSTANDO) {
+                vehiculo.completarRepostaje();
+                return true;
+            } else {
+                System.out.println("No se puede completar repostaje para " + vehiculo.getTipo() + " (ID: "
+                        + vehiculo.getId() + "). Estado actual: " + vehiculo.getEstado() + ". No estaba repostando.");
+                return false;
+            }
+        } else {
+            System.out.println("El Recurso con ID " + idRecurso + " no es un vehículo.");
+            return false;
+        }
     }
 
     private class MapaUrbano {
