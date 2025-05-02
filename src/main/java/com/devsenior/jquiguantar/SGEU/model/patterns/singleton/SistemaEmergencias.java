@@ -19,7 +19,6 @@ import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observable; // Imp
 
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PrioridadAltaStrategy;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PriorizacionStrategy;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -177,6 +176,12 @@ public class SistemaEmergencias implements Observable {
 
     public List<Emergencia> getEmergenciasActivas() {
         return emergenciasActivas;
+    }
+
+    public List<Emergencia> getEmergenciasNoAtendidas() {
+        return emergenciasActivas.stream()
+                .filter(e -> !e.isAtendida())
+                .collect(Collectors.toList());
     }
 
     public List<BaseOperaciones> getBasesOperaciones() {

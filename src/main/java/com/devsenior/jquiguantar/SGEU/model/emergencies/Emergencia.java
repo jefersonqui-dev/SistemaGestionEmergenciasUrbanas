@@ -93,6 +93,12 @@ public class Emergencia {
         }
     }
 
+    public void simularAvanceProgreso(double porcentajeAvance) {
+        if (!this.atendida) {
+            setProgresoAtencion(this.progresoAtencion + porcentajeAvance);
+        }
+    }
+
     public long calcularTiempoTotalAtencionMillis() {
         if (tiempoFinAtencion != null && tiempoInicioAtencion != null) {
             return tiempoFinAtencion.getTime() - tiempoInicioAtencion.getTime(); // en milisegundos
