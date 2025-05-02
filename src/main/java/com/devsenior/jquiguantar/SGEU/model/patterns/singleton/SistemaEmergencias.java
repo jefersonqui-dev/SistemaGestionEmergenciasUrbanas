@@ -225,25 +225,47 @@ public class SistemaEmergencias implements Observable {
         return baseMasCercana;
     }
 
+    public static class SugerenciaRecursos {
+        private final List<Recurso> recursosSugeridos;
+        private final BaseOperaciones baseSugerida;
+
+        public SugerenciaRecursos(List<Recurso> recursosSugeridos, BaseOperaciones baseSugerida) {
+            this.recursosSugeridos = recursosSugeridos;
+            this.baseSugerida = baseSugerida;
+        }
+
+        public List<Recurso> getRecursosSugeridos() {
+            return recursosSugeridos;
+        }
+
+        public BaseOperaciones getBaseSugerida() {
+            return baseSugerida;
+        }
+    }
+
     public List<Recurso> sugerirRecursosAutomaticos(Emergencia emergencia) {
         List<Recurso> sugerencias = new ArrayList<>();
 
         // Determinar qué tipo(s) de servicio y recursos necesita esta emergencia
         String tipoServicioRequerido = null;
         String tipoRecursoPrincipal; // Ej. Camión, Ambulancia, Patrulla
+        String tipoPersonalAdicional;
 
         switch (emergencia.getTipo()) {
             case INCENDIO:
                 tipoServicioRequerido = "BOMBEROS";
                 tipoRecursoPrincipal = "Camión de Bomberos"; // Asumimos nombres exactos del JSON
+                tipoPersonalAdicional = "Personal Bombero"; // Asumimos nombres exactos del JSON
                 break;
             case ACCIDENTE_VEHICULAR:
                 tipoServicioRequerido = "AMBULANCIA";
                 tipoRecursoPrincipal = "Ambulancia"; // Asumimos nombres exactos del JSON
+                tipoPersonalAdicional = "Personal Paramédico"; // Asumimos nombres exactos del JSON
                 break;
             case ROBO:
                 tipoServicioRequerido = "POLICIA";
                 tipoRecursoPrincipal = "Patrulla Policial"; // Asumimos nombres exactos del JSON
+                tipoPersonalAdicional = "Oficial de Policía";
                 break;
             default:
                 // Para otros tipos, puede ser más genérico o no sugerir automáticamente
@@ -286,15 +308,18 @@ public class SistemaEmergencias implements Observable {
                 System.out.println("Recurso principal sugerido: " + recursoPrincipalSugerido);
 
                 // Opcional: Sugerir personal adicional de la misma base si está disponible
-                List<Recurso> personalSugerido = recursosDisponiblesEnBase.stream()
-                        .filter(r -> r.getTipo().toLowerCase().contains("personal")
-                                || r.getTipo().toLowerCase().contains("oficial")) // Tipos de personal/oficial
-                        .limit(2) // Sugerir un máximo de 2 unidades de personal, por ejemplo
-                        .collect(Collectors.toList());
+                if (tipoPersonalAdicional != null) {
 
-                sugerencias.addAll(personalSugerido);
-                if (!personalSugerido.isEmpty()) {
-                    System.out.println("Personal sugerido adicional: " + personalSugerido.size() + " unidades.");
+                    List<Recurso> personalSugerido = recursosDisponiblesEnBase.stream()
+                            .filter(r -> r.getTipo().toLowerCase().contains("personal")
+                                    || r.getTipo().equalsIgnoreCase(tipoPersonalAdicional)) // Tipos de personal/oficial
+                            .limit(2) // Sugerir un máximo de 2 unidades de personal, por ejemplo
+                            .collect(Collectors.toList());
+
+                    sugerencias.addAll(personalSugerido);
+                    if (!personalSugerido.isEmpty()) {
+                        System.out.println("Personal sugerido adicional: " + personalSugerido.size() + " unidades.");
+                    }
                 }
             } else {
                 System.out.println("No se encontró recurso principal disponible (" + tipoRecursoPrincipal
