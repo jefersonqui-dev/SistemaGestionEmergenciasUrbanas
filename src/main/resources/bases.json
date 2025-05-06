@@ -1,0 +1,98 @@
+[
+    {
+      "id": "BOMBEROS_ESTACION_CENTRAL",
+      "nombre": "Estación Central de Bomberos",
+      "tipoServicio": "BOMBEROS",
+      "ubicacion": {
+        "latitud": -34.6037,
+        "longitud": -58.3816
+      },
+      "recursosIniciales": [
+        {
+          "tipo": "Camión de Bomberos",
+          "id": 101,
+          "consumoPorDistancia": 0.5
+        },
+        {
+          "tipo": "Camión de Bomberos",
+          "id": 102,
+          "consumoPorDistancia": 0.5
+        },
+        {
+          "tipo": "Personal Bombero",
+          "id": 201
+        },
+        {
+          "tipo": "Personal Bombero",
+          "id": 202
+        },
+        {
+          "tipo": "Personal Bombero",
+          "id": 203
+        }
+      ]
+    },
+    {
+      "id": "AMBULANCIA_HOSPITAL_PRINCIPAL",
+      "nombre": "Hospital Principal",
+      "tipoServicio": "AMBULANCIA",
+      "ubicacion": {
+        "latitud": -34.5936,
+        "longitud": -58.3878
+      },
+      "recursosIniciales": [
+        {
+          "tipo": "Ambulancia",
+          "id": 301,
+          "consumoPorDistancia": 0.3
+        },
+        {
+          "tipo": "Ambulancia",
+          "id": 302,
+          "consumoPorDistancia": 0.3
+        },
+        {
+          "tipo": "Personal Paramédico",
+          "id": 401
+        },
+        {
+          "tipo": "Personal Paramédico",
+          "id": 402
+        }
+      ]
+    },
+    {
+      "id": "POLICIA_COMISARIA_CENTRO",
+      "nombre": "Comisaría Centro",
+      "tipoServicio": "POLICIA",
+      "ubicacion": {
+        "latitud": -34.6084,
+        "longitud": -58.3721
+      },
+      "recursosIniciales": [
+        {
+          "tipo": "Patrulla Policial",
+          "id": 501,
+          "consumoPorDistancia": 0.4
+        },
+        {
+          "tipo": "Patrulla Policial",
+          "id": 502,
+          "consumoPorDistancia": 0.4
+        },
+        {
+          "tipo": "Patrulla Policial",
+          "id": 503,
+          "consumoPorDistancia": 0.4
+        },
+        {
+          "tipo": "Oficial de Policía",
+          "id": 601
+        },
+        {
+          "tipo": "Oficial de Policía",
+          "id": 602
+        }
+      ]
+    }
+  ]
