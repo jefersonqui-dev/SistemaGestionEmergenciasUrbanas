@@ -64,26 +64,26 @@ public class ConsolaView {
 
         if (!activas.isEmpty()) {
             mostrarMensaje("\n  Emergencias Activas:");
-            mostrarMensaje("  --------------------------------------------------");
+            mostrarMensaje("  -----------------------------------------------------------------------------");
             for (Emergencia emergencia : activas) {
-                mostrarMensaje(String.format("  ID: %-3d | Tipo: %-15s | Gravedad: %-5s | Progreso: %.1f%%",
+                mostrarMensaje(String.format("  ID: %-3d | Tipo: %-25s | Gravedad: %-5s | Progreso: %.1f%%",
                         emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), emergencia.getProgresoAtencion()));
             }
         }
 
         if (!resueltas.isEmpty()) {
             mostrarMensaje("\n  Emergencias Resueltas:");
-            mostrarMensaje("  --------------------------------------------------");
+            mostrarMensaje("  ------------------------------------------------------------------------------------");
             for (Emergencia emergencia : resueltas) {
                 long tiempoTotalAtencionMillis = emergencia.calcularTiempoTotalAtencionMillis();
                 String tiempoAtencionStr = (tiempoTotalAtencionMillis != -1) ?
                         String.format("Tiempo de atención: %.2f segundos", tiempoTotalAtencionMillis / 1000.0) : "";
-                mostrarMensaje(String.format("  ID: %-3d | Tipo: %-15s | Gravedad: %-5s | %s",
+                mostrarMensaje(String.format("  ID: %-3d | Tipo: %-25s | Gravedad: %-5s | %s",
                         emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), tiempoAtencionStr));
             }
         }
 
-        mostrarMensaje("===============================================================");
+        mostrarMensaje("==============================================================================");
     }
 
      public void mostrarRecursos(List<Recurso> recursos) {
@@ -156,7 +156,7 @@ public class ConsolaView {
     // --- Métodos para solicitar entrada al usuario ---
 
     public int solicitarOpcion() {
-        mostrarMensaje("Ingrese su opción:");
+        System.out.print("Ingrese su opción: ");
         while (!scanner.hasNextInt()) {
             mostrarMensaje("Entrada no válida. Por favor, ingrese un número.");
             scanner.next(); // Consumir la entrada no válida
@@ -166,43 +166,43 @@ public class ConsolaView {
         return opcion;
     }
 
-     public int solicitarNumeroEntero(String mensaje) {
-         mostrarMensaje(mensaje);
-         while (!scanner.hasNextInt()) {
-             mostrarMensaje("Entrada no válida. Por favor, ingrese un número entero.");
-             scanner.next(); // Consumir la entrada no válida
-         }
-         int numero = scanner.nextInt();
-         scanner.nextLine(); // Consumir el resto de la línea
-         return numero;
-     }
+    public int solicitarNumeroEntero(String mensaje) {
+        System.out.print(mensaje + " ");
+        while (!scanner.hasNextInt()) {
+            mostrarMensaje("Entrada no válida. Por favor, ingrese un número entero.");
+            scanner.next(); // Consumir la entrada no válida
+        }
+        int numero = scanner.nextInt();
+        scanner.nextLine(); // Consumir el resto de la línea
+        return numero;
+    }
 
     public String solicitarTexto(String mensaje) {
-        mostrarMensaje(mensaje);
+        System.out.print(mensaje + " ");
         return scanner.nextLine();
     }
 
-     public Ubicacion solicitarUbicacion() {
-         mostrarMensaje("Ingrese la ubicación (Latitud y Longitud):");
-         double latitud = 0;
-         double longitud = 0;
-         boolean entradaValida = false;
-         while(!entradaValida) {
-             try {
-                 System.out.print("Latitud: ");
-                 latitud = scanner.nextDouble();
-                 System.out.print("Longitud: ");
-                 longitud = scanner.nextDouble();
-                 entradaValida = true;
-             } catch (InputMismatchException e) {
-                 mostrarMensaje("Entrada no válida. Por favor, ingrese números para la latitud y longitud.");
-                 scanner.next(); // Consumir la entrada no válida
-             } finally {
-                 scanner.nextLine(); // Consumir el resto de la línea, incluyendo el newline después de los números
-             }
-         }
-         return new Ubicacion(latitud, longitud);
-     }
+    public Ubicacion solicitarUbicacion() {
+        mostrarMensaje("Ingrese la ubicación (Latitud y Longitud):");
+        double latitud = 0;
+        double longitud = 0;
+        boolean entradaValida = false;
+        while(!entradaValida) {
+            try {
+                System.out.print("Latitud: ");
+                latitud = scanner.nextDouble();
+                System.out.print("Longitud: ");
+                longitud = scanner.nextDouble();
+                entradaValida = true;
+            } catch (InputMismatchException e) {
+                mostrarMensaje("Entrada no válida. Por favor, ingrese números para la latitud y longitud.");
+                scanner.next(); // Consumir la entrada no válida
+            } finally {
+                scanner.nextLine(); // Consumir el resto de la línea, incluyendo el newline después de los números
+            }
+        }
+        return new Ubicacion(latitud, longitud);
+    }
 
 
     public TipoEmergencia solicitarTipoEmergencia() {
@@ -211,22 +211,22 @@ public class ConsolaView {
         for (int i = 0; i < tipos.length; i++) {
             mostrarMensaje((i + 1) + ". " + tipos[i]);
         }
-        int opcionTipo = solicitarNumeroEntero("Ingrese el número del tipo:");
+        int opcionTipo = solicitarNumeroEntero("Ingrese el tipo de emergencia:");
         if (opcionTipo > 0 && opcionTipo <= tipos.length) {
             return tipos[opcionTipo - 1];
         } else {
             mostrarMensaje("Opción de tipo de emergencia no válida. Seleccionando OTROS por defecto.");
-            return TipoEmergencia.OTROS; // O manejar error
+            return TipoEmergencia.OTROS; 
         }
     }
 
     public NivelGravedad solicitarNivelGravedad() {
-        mostrarMensaje("Seleccione el nivel de gravedad (Bajo, Medio, Alto):");
+        mostrarMensaje("Nivel de gravedad: ");
         NivelGravedad[] niveles = NivelGravedad.values();
          for (int i = 0; i < niveles.length; i++) {
             mostrarMensaje((i + 1) + ". " + niveles[i]);
         }
-        int opcionNivel = solicitarNumeroEntero("Ingrese el número del nivel:");
+        int opcionNivel = solicitarNumeroEntero("Seleccione el nivel de gravedad:");
         if (opcionNivel > 0 && opcionNivel <= niveles.length) {
             return niveles[opcionNivel - 1];
         } else {
@@ -241,7 +241,7 @@ public class ConsolaView {
 
 
     public String solicitarConfirmacion(String mensaje) {
-        mostrarMensaje(mensaje + " (s/n):");
+        System.out.print(mensaje + " (s/n): ");
         return scanner.nextLine().trim().toLowerCase();
     }
 
