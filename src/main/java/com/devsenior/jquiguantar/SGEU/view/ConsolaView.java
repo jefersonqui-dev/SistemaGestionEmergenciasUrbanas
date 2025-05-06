@@ -83,7 +83,7 @@ public class ConsolaView {
             }
         }
 
-        mostrarMensaje("==============================================================================");
+        mostrarMensaje("  ============================================================================");
     }
 
      public void mostrarRecursos(List<Recurso> recursos) {
@@ -91,26 +91,30 @@ public class ConsolaView {
              mostrarMensaje("No hay recursos registrados en el sistema.");
              return;
          }
-         mostrarMensaje("\n--- Estado Actual de Recursos ---");
-         // Podrías agrupar por tipo o base para una mejor visualización
+         mostrarMensaje("\n                ================= Estado Actual de Recursos =================");
+         mostrarMensaje("  --------------------------------------------------------------------------------------");
+         mostrarMensaje("  ID   | Tipo                 | Cantidad | Estado     | Combustible | Base (Lat, Long)");
+         mostrarMensaje("  --------------------------------------------------------------------------------------");
 
-          // Agrupar por tipo de recurso (simplificado)
          recursos.stream()
                  .collect(Collectors.groupingBy(Recurso::getTipo))
                  .forEach((tipo, listaRecursos) -> {
-                     mostrarMensaje("  Tipo: " + tipo + " (" + listaRecursos.size() + ")");
-                     listaRecursos.forEach(r -> {
+                     int cantidad = listaRecursos.size();
+                     for (Recurso r : listaRecursos) {
                          String baseInfo = "";
+                         String combustibleInfo = "";
                          if (r instanceof Vehiculo) {
-                              Vehiculo v = (Vehiculo) r;
-                             baseInfo = ", Base: " + v.getUbicacionBase().toString(); // Mostrar ubicación base
+                             Vehiculo v = (Vehiculo) r;
+                             baseInfo = String.format("(%.2f, %.2f)", v.getUbicacionBase().getLatitud(), v.getUbicacionBase().getLongitud());
+                             combustibleInfo = String.format("%.1f%%", v.getNivelCombustible());
                          }
-                         mostrarMensaje("    ID: " + r.getId() + ", Estado: " + r.getEstado() + baseInfo + (r instanceof Vehiculo ? ", Combustible: " + String.format("%.1f", ((Vehiculo)r).getNivelCombustible()) + "%" : ""));
-                     });
+                         mostrarMensaje(String.format("  %-4d | %-20s | %-8d | %-10s | %-11s | %s",
+                                 r.getId(), r.getTipo(), cantidad, r.getEstado(), combustibleInfo, baseInfo));
+                     }
                  });
 
-         mostrarMensaje("------------------------------");
-    }
+         mostrarMensaje("  =====================================================================================");
+     }
 
 
      public void mostrarRecursosDisponiblesParaAsignacionManual(List<Recurso> recursos) {
