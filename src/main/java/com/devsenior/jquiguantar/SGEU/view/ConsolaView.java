@@ -58,31 +58,32 @@ public class ConsolaView {
             mostrarMensaje("No hay emergencias registradas.");
             return;
         }
-        mostrarMensaje("\n--- Todas las Emergencias Registradas ---");
-         // Podrías separar en Activas y Resueltas si quieres
+        mostrarMensaje("\n================= Estado Actual de Emergencias =================");
         List<Emergencia> activas = emergencias.stream().filter(e -> !e.isAtendida()).collect(Collectors.toList());
         List<Emergencia> resueltas = emergencias.stream().filter(e -> e.isAtendida()).collect(Collectors.toList());
 
-         if (!activas.isEmpty()) {
-             mostrarMensaje("  Emergencias Activas (" + activas.size() + "):");
-             for (Emergencia emergencia : activas) {
-                 mostrarMensaje("    " + emergencia.toString());
-             }
-         }
+        if (!activas.isEmpty()) {
+            mostrarMensaje("\n  Emergencias Activas:");
+            mostrarMensaje("  --------------------------------------------------");
+            for (Emergencia emergencia : activas) {
+                mostrarMensaje(String.format("  ID: %-3d | Tipo: %-15s | Gravedad: %-5s | Progreso: %.1f%%",
+                        emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), emergencia.getProgresoAtencion()));
+            }
+        }
 
-          if (!resueltas.isEmpty()) {
-             mostrarMensaje("  Emergencias Resueltas (" + resueltas.size() + "):");
-             for (Emergencia emergencia : resueltas) {
-                 // Mostrar tiempo de atención si está resuelta
-                 long tiempoTotalAtencionMillis = emergencia.calcularTiempoTotalAtencionMillis();
-                 String tiempoAtencionStr = (tiempoTotalAtencionMillis != -1) ?
-                     String.format("Tiempo de atención: %.2f segundos", tiempoTotalAtencionMillis / 1000.0) : "";
-                 mostrarMensaje("    " + emergencia.toString() + " " + tiempoAtencionStr);
-             }
-         }
+        if (!resueltas.isEmpty()) {
+            mostrarMensaje("\n  Emergencias Resueltas:");
+            mostrarMensaje("  --------------------------------------------------");
+            for (Emergencia emergencia : resueltas) {
+                long tiempoTotalAtencionMillis = emergencia.calcularTiempoTotalAtencionMillis();
+                String tiempoAtencionStr = (tiempoTotalAtencionMillis != -1) ?
+                        String.format("Tiempo de atención: %.2f segundos", tiempoTotalAtencionMillis / 1000.0) : "";
+                mostrarMensaje(String.format("  ID: %-3d | Tipo: %-15s | Gravedad: %-5s | %s",
+                        emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), tiempoAtencionStr));
+            }
+        }
 
-
-        mostrarMensaje("-----------------------------------------");
+        mostrarMensaje("===============================================================");
     }
 
      public void mostrarRecursos(List<Recurso> recursos) {
