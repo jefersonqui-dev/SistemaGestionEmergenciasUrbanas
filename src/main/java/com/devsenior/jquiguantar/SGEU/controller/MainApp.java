@@ -60,7 +60,7 @@ public class MainApp {
                     finalizarJornada(); // Fase 7
                     break;
                 default:
-                    view.mostrarMensaje("Opción no válida. Por favor, intente de nuevo.");
+                    mostrarMensajeErrorOpcion();
             }
 
             // Pausa simulada para permitir la lectura de la salida y la simulación de tiempo
@@ -70,10 +70,13 @@ public class MainApp {
                 Thread.currentThread().interrupt();
             }
 
+            // Llamar a esperarEnter después de cada acción del menú principal
+            view.esperarEnter();
+
         } while (opcionPrincipal != 6); // La opción de salida ahora es 6
 
         view.cerrarScanner();
-        view.mostrarMensaje("Sistema finalizado. ¡Gracias por usar el Sistema de Gestión de Emergencias!");
+        view.mostrarMensaje("Sistema finalizado. ¡Gracias por usar el sistema!");
     }
 
     // --- Métodos para manejar las opciones del menú principal ---
@@ -92,7 +95,10 @@ public class MainApp {
         // Registrar la emergencia en el sistema (llama a SistemaEmergencias, que notifica observadores - Paso 14 y 15)
         sistema.registrarEmergencia(nuevaEmergencia);
 
-        view.mostrarMensaje("Emergencia registrada exitosamente.");
+        // Mensaje de confirmación amigable
+        view.mostrarMensaje("--------------------------------------------------------");
+        view.mostrarMensaje(String.format("¡Emergencia registrada exitosamente!\nTipo: %s\nUbicación: (Lat: %.2f, Long: %.2f)\nGravedad: %s\n",
+                tipo, ubicacion.getLatitud(), ubicacion.getLongitud(), gravedad));
     }
 
     private static void verEstadoEmergencias() { // Mostrará todas, activas y resueltas
@@ -139,7 +145,7 @@ public class MainApp {
                     view.mostrarMensaje("Volviendo al menú principal...");
                     break;
                 default:
-                    view.mostrarMensaje("Opción no válida. Por favor, intente de nuevo.");
+                    mostrarMensajeErrorOpcion();
             }
 
              // Simular avance del tiempo después de una acción en este sub-menú
@@ -152,7 +158,7 @@ public class MainApp {
 
     // --- Flujo de asignación automática y manual (llamado desde gestionarEmergenciasActivas) ---
     private static void atenderProximaEmergenciaFlujo() {
-         view.mostrarMensaje("\n--- Atender Próxima Emergencia ---");
+         view.mostrarMensaje("\n================= Atender Próxima Emergencia =================");
 
          // 1. Obtener la próxima emergencia a priorizar (Paso 18 - parte)
         Emergencia emergenciaAPriorizar = sistema.getProximaEmergenciaAPriorizar();
@@ -162,7 +168,16 @@ public class MainApp {
             return;
         }
 
-        view.mostrarMensaje("Emergencia prioritaria seleccionada: " + emergenciaAPriorizar);
+        view.mostrarMensaje(String.format("Emergencia prioritaria seleccionada:\n  ID: %d\n  Tipo: %s\n  Ubicación: Latitud %.2f, Longitud %.2f\n  Gravedad: %s\n  Progreso: %.2f%%\n  Estado: %s\n  Tiempo Estimado: %d ms\n",
+            emergenciaAPriorizar.getId(),
+            emergenciaAPriorizar.getTipo(),
+            emergenciaAPriorizar.getUbicacion().getLatitud(),
+            emergenciaAPriorizar.getUbicacion().getLongitud(),
+            emergenciaAPriorizar.getNivelGravedad(),
+            emergenciaAPriorizar.getProgresoAtencion(),
+            emergenciaAPriorizar.isAtendida() ? "Resuelta" : "Pendiente",
+            emergenciaAPriorizar.getTiempoRespuestaEstimado()));
+        view.mostrarMensaje("=============================================================");
 
         // 2. Sugerir recursos automáticamente (Paso 18)
         List<Recurso> recursosSugeridos = sistema.sugerirRecursosAutomaticos(emergenciaAPriorizar);
@@ -353,4 +368,9 @@ public class MainApp {
          // Opcional: Mover la emergencia a una lista de emergencias resueltas si ya no se quiere ver en "activas"
          // sistema.marcarEmergenciaComoResuelta(emergencia); // Necesitarías un método en SistemaEmergencias para esto
      }
+
+    // Consolidar mensajes de error
+    private static void mostrarMensajeErrorOpcion() {
+        view.mostrarMensaje("Opción no válida. Por favor, intente de nuevo.");
+    }
 }

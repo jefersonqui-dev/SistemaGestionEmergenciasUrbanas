@@ -146,8 +146,7 @@ public class SistemaEmergencias implements Observable {
     // Método para añadir una emergencia al sistema
     public void registrarEmergencia(Emergencia emergencia) {
         this.emergenciasActivas.add(emergencia);
-        System.out.println("Emergencia registrada: " + emergencia.getTipo() + " en "
-                + emergencia.getUbicacion() + ", (ID: " + emergencia.getId() + ")");
+        
     }
 
     @Override

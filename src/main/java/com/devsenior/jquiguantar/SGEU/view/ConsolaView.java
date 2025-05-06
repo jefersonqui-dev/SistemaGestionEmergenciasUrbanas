@@ -28,6 +28,11 @@ public class ConsolaView {
         System.out.println(mensaje);
     }
 
+    // Consolidar mensajes de error
+    public void mostrarMensajeErrorEntrada(String tipo) {
+        mostrarMensaje("Entrada no válida. Por favor, ingrese un " + tipo + ".");
+    }
+
     // Menú principal simplificado
     public void mostrarMenuPrincipal() {
         System.out.println("\n===================================================");
@@ -52,13 +57,17 @@ public class ConsolaView {
          System.out.println("--------------------------------------");
      }
 
+    // Simplificar encabezados y separadores
+    public void mostrarEncabezado(String titulo) {
+        mostrarMensaje("\n             ================= " + titulo + " =================");
+    }
 
     public void mostrarEmergencias(List<Emergencia> emergencias) {
         if (emergencias == null || emergencias.isEmpty()) {
             mostrarMensaje("No hay emergencias registradas.");
             return;
         }
-        mostrarMensaje("\n================= Estado Actual de Emergencias =================");
+        mostrarEncabezado("Estado Actual de Emergencias");
         List<Emergencia> activas = emergencias.stream().filter(e -> !e.isAtendida()).collect(Collectors.toList());
         List<Emergencia> resueltas = emergencias.stream().filter(e -> e.isAtendida()).collect(Collectors.toList());
 
@@ -77,7 +86,7 @@ public class ConsolaView {
             for (Emergencia emergencia : resueltas) {
                 long tiempoTotalAtencionMillis = emergencia.calcularTiempoTotalAtencionMillis();
                 String tiempoAtencionStr = (tiempoTotalAtencionMillis != -1) ?
-                        String.format("Tiempo de atención: %.2f segundos", tiempoTotalAtencionMillis / 1000.0) : "";
+                        String.format("Tiempo de atención: %.2f minutos", tiempoTotalAtencionMillis / 60000.0) : "";
                 mostrarMensaje(String.format("  ID: %-3d | Tipo: %-25s | Gravedad: %-5s | %s",
                         emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), tiempoAtencionStr));
             }
@@ -91,7 +100,7 @@ public class ConsolaView {
              mostrarMensaje("No hay recursos registrados en el sistema.");
              return;
          }
-         mostrarMensaje("\n                ================= Estado Actual de Recursos =================");
+         mostrarEncabezado("Estado Actual de Recursos");
          mostrarMensaje("  --------------------------------------------------------------------------------------");
          mostrarMensaje("  ID   | Tipo                 | Cantidad | Estado     | Combustible | Base (Lat, Long)");
          mostrarMensaje("  --------------------------------------------------------------------------------------");
@@ -162,8 +171,8 @@ public class ConsolaView {
     public int solicitarOpcion() {
         System.out.print("Ingrese su opción: ");
         while (!scanner.hasNextInt()) {
-            mostrarMensaje("Entrada no válida. Por favor, ingrese un número.");
-            scanner.next(); // Consumir la entrada no válida
+            mostrarMensajeErrorEntrada("número");
+            scanner.next();
         }
         int opcion = scanner.nextInt();
         scanner.nextLine(); // Consumir el resto de la línea después del número
@@ -173,8 +182,8 @@ public class ConsolaView {
     public int solicitarNumeroEntero(String mensaje) {
         System.out.print(mensaje + " ");
         while (!scanner.hasNextInt()) {
-            mostrarMensaje("Entrada no válida. Por favor, ingrese un número entero.");
-            scanner.next(); // Consumir la entrada no válida
+            mostrarMensajeErrorEntrada("número entero");
+            scanner.next();
         }
         int numero = scanner.nextInt();
         scanner.nextLine(); // Consumir el resto de la línea
@@ -210,7 +219,7 @@ public class ConsolaView {
 
 
     public TipoEmergencia solicitarTipoEmergencia() {
-        mostrarMensaje("Seleccione el tipo de emergencia:");
+       //1 mostrarMensaje("Seleccione el tipo de emergencia:");
         TipoEmergencia[] tipos = TipoEmergencia.values();
         for (int i = 0; i < tipos.length; i++) {
             mostrarMensaje((i + 1) + ". " + tipos[i]);
@@ -225,7 +234,7 @@ public class ConsolaView {
     }
 
     public NivelGravedad solicitarNivelGravedad() {
-        mostrarMensaje("Nivel de gravedad: ");
+        mostrarMensaje("  ---  Nivel de gravedad  --- ");
         NivelGravedad[] niveles = NivelGravedad.values();
          for (int i = 0; i < niveles.length; i++) {
             mostrarMensaje((i + 1) + ". " + niveles[i]);
@@ -266,5 +275,11 @@ public class ConsolaView {
         if (scanner != null) {
             scanner.close();
         }
+    }
+
+    // Método para esperar a que el usuario presione Enter
+    public void esperarEnter() {
+        mostrarMensaje("Presione Enter para continuar...");
+        scanner.nextLine(); // Esperar a que el usuario presione Enter
     }
 }
