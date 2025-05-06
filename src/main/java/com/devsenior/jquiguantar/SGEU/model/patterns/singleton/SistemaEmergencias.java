@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 import java.util.stream.Collectors; // Para usar streams
+import java.util.IntSummaryStatistics; // Para estadísticas de ints/longs
+import java.util.DoubleSummaryStatistics;
 
 public class SistemaEmergencias implements Observable {
     private static SistemaEmergencias instance;
@@ -468,10 +470,14 @@ public class SistemaEmergencias implements Observable {
     }
 
     private class MapaUrbano {
-        // Metodo para calcular la distancia geografica (usando haversine para
-        // coordenadas)
+        // Metodo para calcular la distancia geografica (usando haversine para coordenadas)
         // Retorna la distancia en kilometros
         public double calcularDistancia(Ubicacion u1, Ubicacion u2) {
+            if (u1 == null || u2 == null) {
+                System.err.println("Error: Una o ambas ubicaciones son nulas. No se puede calcular la distancia.");
+                return 0.0; // O lanzar una excepción si es más apropiado
+            }
+
             double lat1 = u1.getLatitud();
             double lon1 = u1.getLongitud();
             double lat2 = u2.getLatitud();
@@ -487,5 +493,68 @@ public class SistemaEmergencias implements Observable {
             double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c; // Distancia en km
         }
+    }
+
+
+    //Metodos para calcular estadisticas
+
+     // Total de emergencias registradas
+     public int getTotalEmergenciasRegistradas() {
+        return emergenciasActivas.size(); // Si emergenciasActivas guarda todas las registradas
+    }
+
+    // Total de emergencias resueltas
+    public long getTotalEmergenciasResueltas() {
+        return emergenciasActivas.stream()
+                   .filter(Emergencia::isAtendida)
+                   .count();
+    }
+
+    // Tiempo promedio de respuesta (desde registro hasta inicio de atención)
+    public double getTiempoPromedioRealRespuestaMillis() {
+        IntSummaryStatistics stats = emergenciasActivas.stream()
+            .filter(e -> e.calcularTiempoRealRespuestaMillis() != -1) // Usar el método correcto de Emergencia
+            .collect(Collectors.summarizingInt(e -> (int) e.calcularTiempoRealRespuestaMillis()));
+
+        return stats.getAverage(); // Retorna el promedio en milisegundos
+    }
+
+    // Tiempo promedio total de atención (desde inicio hasta fin)
+    public double getTiempoPromedioTotalAtencionMillis() {
+         IntSummaryStatistics stats = emergenciasActivas.stream()
+            .filter(e -> e.calcularTiempoTotalAtencionMillis() != -1) // Filtrar las que tienen tiempo de atención calculado
+            .collect(Collectors.summarizingInt(e -> (int) e.calcularTiempoTotalAtencionMillis()));
+
+        return stats.getAverage(); // Retorna el promedio en milisegundos
+    }
+
+     // Porcentaje de emergencias resueltas
+     public double getPorcentajeEmergenciasResueltas() {
+         int total = getTotalEmergenciasRegistradas();
+         if (total == 0) return 0.0;
+         return (double) getTotalEmergenciasResueltas() / total * 100.0;
+     }
+
+     // Número de recursos por estado (ej. Disponibles, Ocupados, Repostando)
+     public long getCantidadRecursosPorEstado(EstadoRecurso estado) {
+         return basesOperaciones.stream()
+                    .flatMap(base -> base.getRecursosEnBase().stream())
+                    .filter(r -> r.getEstado() == estado)
+                    .count();
+     }
+
+     // Nivel promedio de combustible de los vehículos
+     public double getNivelPromedioCombustibleVehiculos() {
+          DoubleSummaryStatistics stats = basesOperaciones.stream()
+             .flatMap(base -> base.getRecursosEnBase().stream())
+             .filter(r -> r instanceof Vehiculo)
+             .mapToDouble(r -> ((Vehiculo) r).getNivelCombustible())
+             .summaryStatistics(); // Cambiar collect por summaryStatistics
+
+         return stats.getAverage(); // Retorna el promedio del nivel de combustible
+     }
+
+    public double calcularDistancia(Ubicacion u1, Ubicacion u2) {
+        return this.mapa.calcularDistancia(u1, u2);
     }
 }
