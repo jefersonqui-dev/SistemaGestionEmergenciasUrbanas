@@ -10,9 +10,11 @@ import com.devsenior.jquiguantar.SGEU.model.resources.Vehiculo;
 import com.devsenior.jquiguantar.SGEU.model.resources.EstadoRecurso;
 import com.devsenior.jquiguantar.SGEU.model.services.BaseOperaciones;
 import com.devsenior.jquiguantar.SGEU.model.util.Ubicacion;
-import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.SistemaEmergencias.SugerenciaRecursos;
+// Removida la importación de SugerenciaRecursos si no se usa directamente aquí
+// import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.SistemaEmergencias.SugerenciaRecursos;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit; // Para la simulación de tiempo
 
@@ -21,6 +23,7 @@ public class MainApp {
     private static SistemaEmergencias sistema;
     private static ConsolaView view;
     private static final long INTERVALO_SIMULACION_MILLIS = 2000; // Simular avance cada 2 segundos
+    private static final String CONFIG_FILE = "bases.json"; // Nombre del archivo de configuración
 
 
     public static void main(String[] args) {
@@ -29,9 +32,33 @@ public class MainApp {
 
         view.mostrarMensaje("Sistema de Gestión de Emergencias Urbanas iniciado.");
 
+        // Paso 1: Inicializar el sistema desde el archivo JSON (Ahora en el Controlador)
+        view.mostrarMensaje("Cargando configuración del sistema desde " + CONFIG_FILE + "...");
+        boolean inicializacionExitosa = sistema.inicializarSistemaDesdeJson(CONFIG_FILE);
+
+        if (inicializacionExitosa) {
+            view.mostrarMensaje("Configuración cargada exitosamente.");
+            // Paso 2: Añadir las bases como observadores (Ahora en el Controlador)
+            sistema.addBasesAsObservers();
+            view.mostrarMensaje("Todas las bases de Operaciones registradas como observadores del sistema.");
+
+            // Establecer estrategia de priorización inicial (ejemplo: Prioridad Alta)
+            // Ahora el mensaje de confirmación se imprime aquí en el Controlador
+            sistema.setEstrategiaPriorizacionActual(new com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PrioridadAltaStrategy());
+             view.mostrarMensaje("Estrategia de priorización inicial establecida: Prioridad Alta.");
+
+
+        } else {
+            view.mostrarMensaje("Error al cargar la configuración del sistema. No se puede continuar.");
+            view.cerrarScanner();
+            return; // Salir si la inicialización falla
+        }
+
+
         int opcionPrincipal;
         do {
             // Simular avance del tiempo y progreso de emergencias activas antes de mostrar el menú (Paso 23)
+            // La liberación de recursos al completar una emergencia también se gestiona aquí, llamando al Modelo
             simularAvanceTiempoYProgreso();
 
             // Mostrar el menú principal
@@ -45,13 +72,14 @@ public class MainApp {
                     registrarNuevaEmergencia();
                     break;
                 case 2:
-                    verEstadoEmergencias(); // Mostrará activas y resueltas
+                    verEstadoEmergencias();
                     break;
                 case 3:
                     verEstadoRecursos();
                     break;
                 case 4:
-                    gestionarEmergenciasActivas(); // Iniciar el flujo integrado
+                    // La opción 4 ahora solo entra al sub-menú de gestión
+                    gestionarEmergenciasActivas();
                     break;
                 case 5:
                     mostrarEstadisticas(); // Fase 7
@@ -65,15 +93,17 @@ public class MainApp {
 
             // Pausa simulada para permitir la lectura de la salida y la simulación de tiempo
             try {
-                Thread.sleep(INTERVALO_SIMULACION_MILLIS / 2); // Pausa corta
+                Thread.sleep(INTERVALO_SIMULACION_MILLIS / 2);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
 
-            // Llamar a esperarEnter después de cada acción del menú principal
-            view.esperarEnter();
+            // Llamar a esperarEnter después de cada acción del menú principal (excepto salir)
+             if (opcionPrincipal != 6) {
+                view.esperarEnter();
+             }
 
-        } while (opcionPrincipal != 6); // La opción de salida ahora es 6
+        } while (opcionPrincipal != 6);
 
         view.cerrarScanner();
         view.mostrarMensaje("Sistema finalizado. ¡Gracias por usar el sistema!");
@@ -87,23 +117,29 @@ public class MainApp {
         TipoEmergencia tipo = view.solicitarTipoEmergencia();
         Ubicacion ubicacion = view.solicitarUbicacion();
         NivelGravedad gravedad = view.solicitarNivelGravedad();
-        long tiempoEstimado = view.solicitarTiempoRespuestaEstimado("minutos") * 60 * 1000; // Convertir minutos a milisegundos
+        // El tiempo estimado se guarda en milisegundos en el Modelo
+        long tiempoEstimadoMillis = view.solicitarTiempoRespuestaEstimado("minutos") * 60 * 1000;
 
-        // Usar la Fábrica para crear la instancia correcta de Emergencia (Paso 13)
-        Emergencia nuevaEmergencia = com.devsenior.jquiguantar.SGEU.model.patterns.factory.EmergenciaFactory.crearEmergencia(tipo, ubicacion, gravedad, tiempoEstimado);
+        Emergencia nuevaEmergencia = com.devsenior.jquiguantar.SGEU.model.patterns.factory.EmergenciaFactory.crearEmergencia(tipo, ubicacion, gravedad, tiempoEstimadoMillis);
 
-        // Registrar la emergencia en el sistema (llama a SistemaEmergencias, que notifica observadores - Paso 14 y 15)
         sistema.registrarEmergencia(nuevaEmergencia);
+
+        // Notificar a los observadores (bases) DESPUÉS de registrar la emergencia
+        view.mostrarMensaje("Notificando a las bases de operaciones sobre la nueva emergencia...");
+        sistema.notifyObservers(nuevaEmergencia);
+
 
         // Mensaje de confirmación amigable
         view.mostrarMensaje("--------------------------------------------------------");
-        view.mostrarMensaje(String.format("¡Emergencia registrada exitosamente!\nTipo: %s\nUbicación: (Lat: %.2f, Long: %.2f)\nGravedad: %s\n",
-                tipo, ubicacion.getLatitud(), ubicacion.getLongitud(), gravedad));
+        view.mostrarMensaje(String.format("¡Emergencia registrada exitosamente!\nID: %d\nTipo: %s\nUbicación: (Lat: %.2f, Long: %.2f)\nGravedad: %s\n",
+                nuevaEmergencia.getId(), nuevaEmergencia.getTipo(), ubicacion.getLatitud(), ubicacion.getLongitud(), gravedad));
     }
 
-    private static void verEstadoEmergencias() { // Mostrará todas, activas y resueltas
-        List<Emergencia> emergencias = sistema.getEmergenciasActivas(); // getEmergenciasActivas ahora retorna todas registradas
-        view.mostrarEmergencias(emergencias);
+    private static void verEstadoEmergencias() {
+         // Ahora getAllEmergencias() retorna todas las registradas en el Modelo modificado
+         // Nota: Tu método mostrarEmergencias en ConsolaView ya separa activas y resueltas.
+         List<Emergencia> emergencias = sistema.getAllEmergencias();
+         view.mostrarEmergencias(emergencias);
     }
 
     private static void verEstadoRecursos() {
@@ -111,35 +147,37 @@ public class MainApp {
         view.mostrarRecursos(recursos);
     }
 
-    // --- Nuevo método para gestionar emergencias activas (flujo integrado) ---
+    // --- Método para gestionar emergencias activas (flujo integrado) ---
     private static void gestionarEmergenciasActivas() {
         int opcionGestion;
         do {
-            // Mostrar emergencias activas no atendidas en este sub-menú
-             List<Emergencia> emergenciasNoAtendidas = sistema.getEmergenciasNoAtendidas();
+            // Mostrar emergencias activas no atendidas al entrar al sub-menú
+            List<Emergencia> emergenciasNoAtendidas = sistema.getEmergenciasNoAtendidas();
             if (!emergenciasNoAtendidas.isEmpty()) {
-                 view.mostrarMensaje("\n--- Emergencias Pendientes de Asignación/Atención ---");
-                  for (Emergencia emergencia : emergenciasNoAtendidas) {
-                      view.mostrarMensaje("ID: " + emergencia.getId() + " - Tipo: " + emergencia.getTipo() + " - Gravedad: " + emergencia.getNivelGravedad() + " - Progreso: " + String.format("%.1f", emergencia.getProgresoAtencion()) + "%");
-                  }
-                 view.mostrarMensaje("---------------------------------------------------");
+                view.mostrarMensaje("\n--- Emergencias Pendientes de Asignación/Atención ---");
+                for (Emergencia emergencia : emergenciasNoAtendidas) {
+                    view.mostrarMensaje(String.format("ID: %d - Tipo: %s - Gravedad: %s - Progreso: %.1f%%",
+                            emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), emergencia.getProgresoAtencion()));
+                }
+                view.mostrarMensaje("---------------------------------------------------");
             } else {
-                 view.mostrarMensaje("\nNo hay emergencias pendientes de asignación/atención.");
+                 view.mostrarMensaje("\nNo hay emergencias pendientes de asignación/atención en este momento.");
             }
 
-
-            view.mostrarMenuGestionEmergenciasActivas(); // Mostrar el sub-menú de gestión
+            // Mostrar el sub-menú de gestión
+            view.mostrarMenuGestionEmergenciasActivas();
             opcionGestion = view.solicitarOpcion();
 
             switch (opcionGestion) {
                 case 1:
-                    atenderProximaEmergenciaFlujo(); // Iniciar el flujo de asignación (automático/manual)
+                    // La opción 1 del sub-menú inicia el flujo de asignación (automático/manual)
+                    atenderProximaEmergenciaFlujo();
                     break;
                 case 2:
-                    iniciarRepostajeFlujo(); // Flujo para iniciar repostaje
+                    iniciarRepostajeFlujo();
                     break;
                 case 3:
-                    completarRepostajeFlujo(); // Flujo para completar repostaje
+                    completarRepostajeFlujo();
                     break;
                 case 4:
                     view.mostrarMensaje("Volviendo al menú principal...");
@@ -148,19 +186,20 @@ public class MainApp {
                     mostrarMensajeErrorOpcion();
             }
 
-             // Simular avance del tiempo después de una acción en este sub-menú
-             simularAvanceTiempoYProgreso();
+            // Simular avance del tiempo después de una acción en este sub-menú
+            if (opcionGestion != 4) { // No simular avance si solo está volviendo
+                 simularAvanceTiempoYProgreso();
+                 view.esperarEnter(); // Pausa después de la acción y simulación en el sub-menú
+            }
 
 
         } while (opcionGestion != 4);
     }
 
-
     // --- Flujo de asignación automática y manual (llamado desde gestionarEmergenciasActivas) ---
     private static void atenderProximaEmergenciaFlujo() {
-         view.mostrarMensaje("\n================= Atender Próxima Emergencia =================");
+        view.mostrarMensaje("\n================= Atender Próxima Emergencia =================");
 
-         // 1. Obtener la próxima emergencia a priorizar (Paso 18 - parte)
         Emergencia emergenciaAPriorizar = sistema.getProximaEmergenciaAPriorizar();
 
         if (emergenciaAPriorizar == null) {
@@ -169,36 +208,51 @@ public class MainApp {
         }
 
         view.mostrarMensaje(String.format("Emergencia prioritaria seleccionada:\n  ID: %d\n  Tipo: %s\n  Ubicación: Latitud %.2f, Longitud %.2f\n  Gravedad: %s\n  Progreso: %.2f%%\n  Estado: %s\n  Tiempo Estimado: %d ms\n",
-            emergenciaAPriorizar.getId(),
-            emergenciaAPriorizar.getTipo(),
-            emergenciaAPriorizar.getUbicacion().getLatitud(),
-            emergenciaAPriorizar.getUbicacion().getLongitud(),
-            emergenciaAPriorizar.getNivelGravedad(),
-            emergenciaAPriorizar.getProgresoAtencion(),
-            emergenciaAPriorizar.isAtendida() ? "Resuelta" : "Pendiente",
-            emergenciaAPriorizar.getTiempoRespuestaEstimado()));
+                emergenciaAPriorizar.getId(),
+                emergenciaAPriorizar.getTipo(),
+                emergenciaAPriorizar.getUbicacion().getLatitud(),
+                emergenciaAPriorizar.getUbicacion().getLongitud(),
+                emergenciaAPriorizar.getNivelGravedad(),
+                emergenciaAPriorizar.getProgresoAtencion(),
+                emergenciaAPriorizar.isAtendida() ? "Resuelta" : "Pendiente",
+                emergenciaAPriorizar.getTiempoRespuestaEstimado()));
         view.mostrarMensaje("=============================================================");
 
-        // 2. Sugerir recursos automáticamente (Paso 18)
+        // Sugerir recursos automáticamente
         List<Recurso> recursosSugeridos = sistema.sugerirRecursosAutomaticos(emergenciaAPriorizar);
 
         if (!recursosSugeridos.isEmpty()) {
-            view.mostrarMensajeSugerenciaRecursos(recursosSugeridos, null);
+            // Puedes crear un método en ConsolaView para mostrar sugerencias de manera más formal si lo deseas
+            view.mostrarMensajeSugerenciaRecursos(recursosSugeridos, null); // Reutiliza el método existente
 
-            // 3. Solicitar confirmación: sugerido o manual (Paso 18 y 19 - parte de la interacción)
             String confirmacion = view.solicitarConfirmacion("¿Desea asignar estos recursos sugeridos a Emergencia ID " + emergenciaAPriorizar.getId() + "? (s/n)");
 
             if (confirmacion.equals("s")) {
-                // Asignar los recursos sugeridos (llama al Modelo - Paso 18 y 19)
-                sistema.asignarRecursosAEmergencia(emergenciaAPriorizar, recursosSugeridos);
+                // Llamar al Modelo para asignar y capturar el resultado detallado (mensajes y éxito general)
+                SistemaEmergencias.AssignmentResult result = sistema.asignarRecursosAEmergencia(emergenciaAPriorizar, recursosSugeridos);
+                // Mostrar los mensajes de resultado de la asignación usando la Vista
+                for (String msg : result.getMessages()) {
+                    view.mostrarMensaje(msg);
+                }
+
+                // Si al menos un recurso fue asignado exitosamente, simular progreso
+                 if (result.isOverallSuccess()) {
+                    // La simulación de progreso podría ser más sofisticada, ligada al tiempo o recursos
+                    // Por ahora, mantenemos una simulación simple después de la asignación
+                    simularProgresoEmergencia(emergenciaAPriorizar); // Nota: La simulación principal sigue en el bucle principal
+                 } else {
+                     // Si overallSuccess es false, los mensajes ya deberían haber explicado por qué no se asignó nada
+                     view.mostrarMensaje("La asignación automática de recursos no fue exitosa.");
+                 }
+
+
             } else {
-                view.mostrarMensaje("Sugerencia automática declinada.");
-                // Ir al flujo de asignación manual para esta emergencia
-                asignarRecursosManualmenteAEmergencia(emergenciaAPriorizar); // Nuevo método para asignar manualmente a una emergencia específica
+                view.mostrarMensaje("Sugerencia automática declinada. Procediendo a asignación manual.");
+                asignarRecursosManualmenteAEmergencia(emergenciaAPriorizar);
             }
         } else {
-             view.mostrarMensaje("No se encontraron recursos disponibles para sugerir para esta emergencia en la base cercana.");
-             // Opcional: Preguntar si quiere intentar asignación manual de todos modos
+             view.mostrarMensaje("No se encontraron recursos disponibles para sugerir para esta emergencia.");
+             // Preguntar si desea intentar asignación manual si no hay sugerencias automáticas
              String intentarManual = view.solicitarConfirmacion("¿Desea intentar asignar recursos manualmente a Emergencia ID " + emergenciaAPriorizar.getId() + "?");
              if (intentarManual.equals("s")) {
                  asignarRecursosManualmenteAEmergencia(emergenciaAPriorizar);
@@ -207,170 +261,231 @@ public class MainApp {
     }
 
     // Nuevo método auxiliar para asignar recursos manualmente a una emergencia específica
-     private static void asignarRecursosManualmenteAEmergencia(Emergencia emergencia) {
-          view.mostrarMensaje("\n--- Asignación Manual para Emergencia ID " + emergencia.getId() + " ---");
+    private static void asignarRecursosManualmenteAEmergencia(Emergencia emergencia) {
+        view.mostrarMensaje("\n--- Asignación Manual para Emergencia ID " + emergencia.getId() + " ---");
 
-         List<Recurso> recursosAAsignar = new ArrayList<>();
-         String continuarAsignando;
+        List<Recurso> recursosAAsignar = new ArrayList<>();
+        String continuarAsignando;
 
-         do {
-             view.mostrarMensaje("\n--- Seleccionar Recurso ---");
+        do {
+            view.mostrarMensaje("\n--- Seleccionar Recurso ---");
 
-              // Mostrar recursos DISPONIBLES (considerando estado y combustible) por tipo
-              // Necesitamos saber los tipos de recursos relevantes para esta emergencia.
-              // Simplificamos mostrando todos los recursos disponibles y dejando que el usuario elija.
-             view.mostrarMensaje("Recursos Disponibles:");
-             List<Recurso> todosRecursosDisponibles = sistema.getAllRecursosDisponiblesPorTipo("cualquier_tipo_simulado");
-              if (todosRecursosDisponibles.isEmpty()) {
-                 view.mostrarMensaje("No hay recursos disponibles para asignar.");
-                 break; // Salir del bucle de asignación manual
+            // Mostrar recursos DISPONIBLES (considerando estado y combustible) por tipo
+            // IDEALMENTE: Implementar un método en SistemaEmergencias que filtre recursos disponibles
+            // relevantes para el tipo de emergencia, o por base cercana, etc.
+            // Por ahora, mostramos todos los disponibles, pero la lógica de selección del usuario es clave.
+            // view.mostrarMensaje("Recursos Disponibles:"); // Este mensaje ya está en mostrarRecursosDisponiblesParaAsignacionManual
+            List<Recurso> todosRecursosDisponibles = sistema.getAllRecursosDisponibles(); // Obtener todos los disponibles
+            if (todosRecursosDisponibles.isEmpty()) {
+                view.mostrarMensaje("No hay recursos disponibles para asignar.");
+                break; // Salir del bucle de selección manual si no hay recursos disponibles
+            }
+
+            // Mostrar solo los recursos disponibles que no han sido ya seleccionados para esta asignación manual
+             List<Recurso> recursosDisponiblesNoSeleccionados = new ArrayList<>(todosRecursosDisponibles);
+             recursosDisponiblesNoSeleccionados.removeAll(recursosAAsignar);
+
+             if(recursosDisponiblesNoSeleccionados.isEmpty() && !recursosAAsignar.isEmpty()){
+                 view.mostrarMensaje("Todos los recursos disponibles han sido seleccionados para esta asignación manual.");
+                 break; // Salir del bucle si todos los disponibles ya fueron seleccionados
+             } else if (recursosDisponiblesNoSeleccionados.isEmpty() && recursosAAsignar.isEmpty()){
+                  view.mostrarMensaje("No hay recursos disponibles para asignar.");
+                  break; // Salir si no hay ningún recurso disponible
              }
 
-             view.mostrarRecursosDisponiblesParaAsignacionManual(todosRecursosDisponibles);
+
+            view.mostrarRecursosDisponiblesParaAsignacionManual(recursosDisponiblesNoSeleccionados); // Mostrar solo los no seleccionados
 
 
-             int idRecursoSeleccionado = view.solicitarNumeroEntero("Ingrese el ID del recurso a asignar (o 0 para finalizar):");
+            int idRecursoSeleccionado = view.solicitarNumeroEntero("Ingrese el ID del recurso a asignar (o 0 para finalizar selección):");
 
-             if (idRecursoSeleccionado == 0) {
-                 break; // El usuario quiere finalizar la asignación manual
-             }
+            if (idRecursoSeleccionado == 0) {
+                break; // El usuario quiere finalizar la selección manual
+            }
 
-             Recurso recursoParaAsignar = sistema.getRecursoById(idRecursoSeleccionado);
+            Recurso recursoParaAsignar = sistema.getRecursoById(idRecursoSeleccionado);
 
-             if (recursoParaAsignar != null) {
-                  // La lógica de asignación en sistema.asignarRecursosAEmergencia ya hace la verificación final (estado y combustible).
-                  // Aquí solo añadimos el recurso a la lista para intentar asignarlo después.
-                  if (!recursosAAsignar.contains(recursoParaAsignar)) {
-                      recursosAAsignar.add(recursoParaAsignar);
-                      view.mostrarMensaje("Recurso " + recursoParaAsignar.getTipo() + " (ID: " + recursoParaAsignar.getId() + ") añadido a la lista de asignación manual.");
-                  } else {
-                      view.mostrarMensaje("Este recurso ya ha sido seleccionado para asignación manual.");
-                  }
+            if (recursoParaAsignar != null) {
+                 // Verifica si el recurso ya fue seleccionado para evitar duplicados en la lista temporal
+                 if (!recursosAAsignar.contains(recursoParaAsignar)) {
+                    // Verifica si el recurso está disponible antes de añadirlo a la lista para intentar asignar
+                    if (recursoParaAsignar.getEstado() == EstadoRecurso.DISPONIBLE) {
+                         recursosAAsignar.add(recursoParaAsignar);
+                         view.mostrarMensaje("Recurso " + recursoParaAsignar.getTipo() + " (ID: " + recursoParaAsignar.getId() + ") añadido a la lista de asignación manual.");
+                    } else {
+                         view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no está DISPONIBLE. Estado actual: " + recursoParaAsignar.getEstado());
+                    }
+                 } else {
+                     view.mostrarMensaje("Este recurso ya ha sido seleccionado para asignación manual.");
+                 }
+            } else {
+                view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no encontrado.");
+            }
 
+            // Continuar preguntando si desea seleccionar otro recurso si hay recursos disponibles que no se han seleccionado
+             List<Recurso> recursosDisponiblesRestantes = new ArrayList<>(todosRecursosDisponibles);
+             recursosDisponiblesRestantes.removeAll(recursosAAsignar);
+
+             if (!recursosDisponiblesRestantes.isEmpty()) {
+                continuarAsignando = view.solicitarConfirmacion("¿Desea seleccionar otro recurso para asignar a Emergencia ID " + emergencia.getId() + "?");
              } else {
-                 view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no encontrado.");
+                 continuarAsignando = "n"; // Ya no hay más recursos disponibles para seleccionar
+                 // view.mostrarMensaje("No hay más recursos disponibles para añadir a la lista de asignación manual."); // Mensaje ya manejado arriba
              }
 
-             continuarAsignando = view.solicitarConfirmacion("¿Desea seleccionar otro recurso para asignar a Emergencia ID " + emergencia.getId() + "?");
 
-         } while (continuarAsignando.equals("s"));
+        } while (continuarAsignando.equals("s"));
 
-         // Intentar asignar los recursos seleccionados manualmente (llama al Modelo - Paso 19)
-         if (!recursosAAsignar.isEmpty()) {
-              sistema.asignarRecursosAEmergencia(emergencia, recursosAAsignar);
-         } else {
-             view.mostrarMensaje("No se seleccionaron recursos para asignación manual.");
-         }
-     }
+        // Intentar asignar los recursos seleccionados manualmente (llama al Modelo)
+        if (!recursosAAsignar.isEmpty()) {
+            view.mostrarMensaje("\nIntentando asignar recursos seleccionados manualmente...");
+            // Llamar al Modelo para asignar y capturar el resultado detallado (mensajes y éxito general)
+            SistemaEmergencias.AssignmentResult result = sistema.asignarRecursosAEmergencia(emergencia, recursosAAsignar);
+
+            // Mostrar los mensajes de resultado de la asignación usando la Vista
+            for (String msg : result.getMessages()) {
+                view.mostrarMensaje(msg);
+            }
+
+            // Si al menos un recurso fue asignado exitosamente, simular progreso
+            if (result.isOverallSuccess()) {
+                simularProgresoEmergencia(emergencia); // Nota: La simulación principal sigue en el bucle principal
+            } else {
+                 view.mostrarMensaje("La asignación manual de recursos no fue exitosa.");
+            }
+
+        } else {
+            view.mostrarMensaje("No se seleccionaron recursos para asignación manual.");
+        }
+    }
 
 
-     // --- Flujos para iniciar y completar repostaje (llamados desde gestionarEmergenciasActivas) ---
+    // --- Flujos para iniciar y completar repostaje (llamados desde gestionarEmergenciasActivas) ---
 
-     private static void iniciarRepostajeFlujo() {
-         view.mostrarMensaje("\n--- Iniciar Repostaje de Vehículo ---");
-         int idVehiculo = view.solicitarIdRecurso(); // Usa el método general para solicitar ID
+    private static void iniciarRepostajeFlujo() {
+        view.mostrarMensaje("\n--- Iniciar Repostaje de Vehículo ---");
+        int idRecurso = view.solicitarIdRecurso(); // Usamos idRecurso para mayor claridad
 
-         // Llamar al método del sistema para iniciar el repostaje (Paso 22)
-         boolean iniciado = sistema.iniciarRepostajeRecurso(idVehiculo);
+        // Llamar al método del sistema para iniciar el repostaje y capturar el mensaje
+        String mensajeResultado = sistema.iniciarRepostajeRecurso(idRecurso);
 
-         if (iniciado) {
-             view.mostrarMensaje("Solicitud de inicio de repostaje procesada.");
-         } // El método del sistema ya imprime mensajes de éxito/error
-     }
+        // Mostrar el mensaje retornado por el Modelo
+        view.mostrarMensaje(mensajeResultado);
+    }
 
-     private static void completarRepostajeFlujo() {
-          view.mostrarMensaje("\n--- Completar Repostaje de Vehículo ---");
-         int idVehiculo = view.solicitarIdRecurso(); // Usa el método general para solicitar ID
+    private static void completarRepostajeFlujo() {
+        view.mostrarMensaje("\n--- Completar Repostaje de Vehículo ---");
+        int idRecurso = view.solicitarIdRecurso(); // Usamos idRecurso para mayor claridad
 
-         // Llamar al método del sistema para completar el repostaje (Paso 22)
-         boolean completado = sistema.completarRepostajeRecurso(idVehiculo);
+        // Llamar al método del sistema para completar el repostaje y capturar el mensaje
+        String mensajeResultado = sistema.completarRepostajeRecurso(idRecurso);
 
-         if (completado) {
-             view.mostrarMensaje("Solicitud de completado de repostaje procesada.");
-         } // El método del sistema ya imprime mensajes de éxito/error
-     }
+        // Mostrar el mensaje retornado por el Modelo
+        view.mostrarMensaje(mensajeResultado);
+    }
 
 
     private static void mostrarEstadisticas() {
         view.mostrarMensaje("\n--- Estadísticas del Día ---");
-        // Lógica de estadísticas (Fase 7 - Paso 28)
-        // Llamar a métodos en SistemaEmergencias para obtener estadísticas
-        // y mostrarlas usando la Vista.
-         view.mostrarMensaje("Funcionalidad de estadísticas aún no implementada.");
+        // Implementación de estadísticas usando métodos del SistemaEmergencias
+        view.mostrarMensaje("Total de emergencias registradas: " + sistema.getTotalEmergenciasRegistradas());
+        view.mostrarMensaje("Total de emergencias resueltas: " + sistema.getTotalEmergenciasResueltas());
+        view.mostrarMensaje(String.format("Porcentaje de emergencias resueltas: %.2f%%", sistema.getPorcentajeEmergenciasResueltas()));
+
+        double tiempoPromedioRespuesta = sistema.getTiempoPromedioRealRespuestaMillis();
+         if (tiempoPromedioRespuesta > 0) { // Verificar si el promedio es mayor a 0 para considerar que hay datos válidos
+             view.mostrarMensaje(String.format("Tiempo promedio real de respuesta: %.2f ms", tiempoPromedioRespuesta));
+         } else {
+             view.mostrarMensaje("Tiempo promedio real de respuesta: No hay datos suficientes (ninguna emergencia iniciada).");
+         }
+
+        double tiempoPromedioAtencion = sistema.getTiempoPromedioTotalAtencionMillis();
+         if (tiempoPromedioAtencion > 0) { // Verificar si el promedio es mayor a 0 para considerar que hay datos válidos
+              view.mostrarMensaje(String.format("Tiempo promedio total de atención: %.2f ms", tiempoPromedioAtencion));
+         } else {
+              view.mostrarMensaje("Tiempo promedio total de atención: No hay datos suficientes (ninguna emergencia completada).");
+         }
+
+
+        view.mostrarMensaje("Recursos Disponibles: " + sistema.getCantidadRecursosPorEstado(EstadoRecurso.DISPONIBLE));
+        view.mostrarMensaje("Recursos Ocupados: " + sistema.getCantidadRecursosPorEstado(EstadoRecurso.OCUPADO));
+        view.mostrarMensaje("Recursos Repostando: " + sistema.getCantidadRecursosPorEstado(EstadoRecurso.REPOSTANDO));
+        view.mostrarMensaje("Recursos Fuera de Servicio: " + sistema.getCantidadRecursosPorEstado(EstadoRecurso.FUERA_DE_SERVICIO));
+
+        double nivelPromedioCombustible = sistema.getNivelPromedioCombustibleVehiculos();
+         if (!Double.isNaN(nivelPromedioCombustible)) { // Usar Double.isNaN para verificar si no hay vehículos
+             view.mostrarMensaje(String.format("Nivel promedio de combustible de vehículos: %.2f%%", nivelPromedioCombustible));
+         } else {
+             view.mostrarMensaje("Nivel promedio de combustible de vehículos: No hay vehículos registrados.");
+         }
     }
 
     private static void finalizarJornada() {
         view.mostrarMensaje("\n--- Finalizando Jornada ---");
         // Lógica de finalización (Fase 7 - Paso 29)
-        // Guardar registro del día, etc.
-         view.mostrarMensaje("Funcionalidad de finalización de jornada aún no implementada.");
+        // Mostrar estadísticas finales y estado de recursos
+        mostrarEstadisticas(); // Reutilizamos la función de estadísticas para el resumen final
+
+        view.mostrarMensaje("\nEstado final de los recursos:");
+        verEstadoRecursos(); // Reutilizamos la función para mostrar el estado de todos los recursos
+
+        // Simular guardado del estado (podría ser en un archivo, base de datos, etc.)
+        view.mostrarMensaje("\nSimulando guardado del estado final del sistema...");
+        // Aquí iría la lógica real de guardado si se implementara.
+
+        view.mostrarMensaje("Jornada finalizada. El sistema se cerrará.");
+
+        // La salida del programa ocurre en el bucle do-while principal cuando opcionPrincipal es 6
     }
 
     // Método para simular el avance del tiempo y el progreso de las emergencias (Paso 23)
     // Llamado en cada iteración del bucle principal del menú y del sub-menú de gestión.
-     private static void simularAvanceTiempoYProgreso() {
-         // Simulación simple: avanzar el progreso de cada emergencia activa un pequeño porcentaje en cada ciclo
-         double avancePorCiclo = 5.0; // Porcentaje de avance por cada vez que se llama a este método
+    private static void simularAvanceTiempoYProgreso() {
+        double avancePorCiclo = 5.0; // Porcentaje de avance por cada vez que se llama a este método
 
-         List<Emergencia> emergenciasNoAtendidas = sistema.getEmergenciasNoAtendidas(); // Obtener solo las que no están 100%
-         if (!emergenciasNoAtendidas.isEmpty()) {
-              // view.mostrarMensaje("\nSimulando avance de progreso de emergencias activas..."); // Opcional: log
-              for (Emergencia emergencia : emergenciasNoAtendidas) {
-                  if (emergencia.getTiempoInicioAtencion() != null) { // Solo avanza si se ha iniciado la atención
-                       emergencia.simularAvanceProgreso(avancePorCiclo);
-                       // Si la emergencia se completa en esta simulación
-                       if (emergencia.isAtendida()) {
-                           view.mostrarMensaje("Emergencia ID " + emergencia.getId() + " marcada como Resuelta.");
-                           // Lógica para liberar recursos asociados a esta emergencia
-                           liberarRecursosDeEmergencia(emergencia); // <-- Llamar a la lógica de liberación
-                       }
-                  }
-              }
-         }
-     }
+        List<Emergencia> emergenciasNoAtendidas = sistema.getEmergenciasNoAtendidas();
+        if (!emergenciasNoAtendidas.isEmpty()) {
+            // Eliminada la impresión opcional de log del Controlador
+            for (Emergencia emergencia : emergenciasNoAtendidas) {
+                // Solo avanza si se ha iniciado la atención y no está resuelta
+                if (emergencia.getTiempoInicioAtencion() != null && !emergencia.isAtendida()) {
+                    emergencia.simularAvanceProgreso(avancePorCiclo);
+                    // Si la emergencia se completa en esta simulación
+                    // Verificar también que el tiempo de fin se haya establecido (se establece en simularAvanceProgreso si llega a 100%)
+                    if (emergencia.isAtendida()) {
+                        view.mostrarMensaje("Emergencia ID " + emergencia.getId() + " completada y marcada como Resuelta.");
+                        // Lógica para liberar recursos asociados a esta emergencia (llamando al Modelo)
+                        // Capturar el resultado de la liberación y mostrar los mensajes
+                        SistemaEmergencias.LiberationResult libResult = sistema.liberarRecursosDeEmergencia(emergencia);
+                        for (String msg : libResult.getMessages()) {
+                            view.mostrarMensaje(msg);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-     // Lógica para liberar recursos de una emergencia cuando se resuelve (Implementado en MainApp/Controlador por ahora)
-     private static void liberarRecursosDeEmergencia(Emergencia emergencia) {
-         view.mostrarMensaje("Liberando recursos asignados a Emergencia ID " + emergencia.getId() + "...");
-         // Recorrer todos los recursos del sistema y liberar los que están asignados a esta emergencia
-         for (BaseOperaciones base : sistema.getBasesOperaciones()) { // Recorrer todas las bases
-             for (Recurso recurso : base.getRecursosEnBase()) { // Recorrer los recursos de cada base
-                 if (recurso.getEmergenciaAsignada() != null && recurso.getEmergenciaAsignada().getId() == emergencia.getId()) {
-                     recurso.liberar(); // Marcar como disponible y desasignar
-                     view.mostrarMensaje("  Recurso liberado: " + recurso.getTipo() + " (ID: " + recurso.getId() + ")");
-
-                     // Si es vehículo, mover su ubicacionActual de vuelta a su base y simular gasto de regreso (Paso 21)
-                     if (recurso instanceof Vehiculo) {
-                          Vehiculo v = (Vehiculo) recurso;
-                          // Calcular distancia de la ubicación actual (la emergencia) a la base
-                           double distanciaRegreso = sistema.calcularDistancia(v.getUbicacionActual(), v.getUbicacionBase());
-                           if (distanciaRegreso > 0) { // Solo simular viaje si hay distancia
-                                view.mostrarMensaje("  Simulando viaje de regreso a base para " + v.getTipo() + " (ID: " + v.getId() + ") (" + String.format("%.2f", distanciaRegreso) + " km).");
-                                v.moverA(v.getUbicacionBase(), distanciaRegreso); // Simular viaje de regreso y gasto de combustible
-                           } else {
-                               // Si la distancia es 0 o negativa, ya está en la base (o error en cálculo)
-                               v.moverA(v.getUbicacionBase(), 0); // Asegurar que la ubicación actual sea la base
-                           }
-
-
-                           // Opcional: Si el combustible es bajo después del viaje de regreso, iniciar repostaje automáticamente (Paso 22)
-                            if (v.getNivelCombustible() < 20) { // Umbral de combustible bajo (ejemplo: 20%)
-                                view.mostrarMensaje("  Combustible bajo (" + String.format("%.1f", v.getNivelCombustible()) + "%) en " + v.getTipo() + " (ID: " + v.getId() + "). Iniciando repostaje automático.");
-                                sistema.iniciarRepostajeRecurso(v.getId()); // Llamar al método del sistema
-                            } else {
-                                // Si el combustible es suficiente, simplemente vuelve a estar disponible
-                                 view.mostrarMensaje("  " + v.getTipo() + " (ID: " + v.getId() + ") regresó a base. Combustible restante: " + String.format("%.1f", v.getNivelCombustible()) + "%.");
-                            }
-                     }
-                 }
-             }
-         }
-         // Opcional: Mover la emergencia a una lista de emergencias resueltas si ya no se quiere ver en "activas"
-         // sistema.marcarEmergenciaComoResuelta(emergencia); // Necesitarías un método en SistemaEmergencias para esto
-     }
 
     // Consolidar mensajes de error
     private static void mostrarMensajeErrorOpcion() {
         view.mostrarMensaje("Opción no válida. Por favor, intente de nuevo.");
     }
+
+    // Método auxiliar para simular el progreso de una emergencia después de asignar recursos
+    // Este método podría ser más sofisticado para simular el tiempo que tarda en completarse
+    private static void simularProgresoEmergencia(Emergencia emergencia) {
+        // En una implementación real, esta simulación podría basarse en el tiempo real
+        // transcurrido o un cálculo más complejo. Aquí, simplemente avanzamos el progreso
+        // un poco para mostrar algún cambio.
+        // La simulación principal en simularAvanceTiempoYProgreso continuará avanzando el progreso.
+        view.mostrarMensaje("Iniciando simulación de progreso para Emergencia ID " + emergencia.getId() + "...");
+         // Si deseas simular un avance inicial inmediato al asignar, podrías llamarlo aquí:
+         // emergencia.simularAvanceProgreso(10.0); // Ejemplo: un 10% de avance inicial al asignar
+         // view.mostrarMensaje(String.format("Avance inicial simulado. Progreso actual: %.1f%%", emergencia.getProgresoAtencion()));
+    }
+
+     // Removido el método atenderEmergenciaManual ya que su lógica se integró en gestionarEmergenciasActivas
+     // Removido el método liberarRecursosDeEmergencia ya que se movió al Modelo (SistemaEmergencias)
+
 }

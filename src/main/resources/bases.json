@@ -14,12 +14,21 @@
           "consumoPorDistancia": 0.5
         },
         {
+          "tipo": "Camión de Bomberos",
+          "id": 102,
+          "consumoPorDistancia": 0.5
+        },
+        {
           "tipo": "Personal Bombero",
           "id": 201
         },
         {
           "tipo": "Personal Bombero",
           "id": 202
+        },
+        {
+          "tipo": "Personal Bombero",
+          "id": 203
         }
       ]
     },
@@ -38,8 +47,17 @@
           "consumoPorDistancia": 0.3
         },
         {
+          "tipo": "Ambulancia",
+          "id": 302,
+          "consumoPorDistancia": 0.3
+        },
+        {
           "tipo": "Personal Paramédico",
           "id": 401
+        },
+        {
+          "tipo": "Personal Paramédico",
+          "id": 402
         }
       ]
     },
@@ -57,14 +75,23 @@
           "id": 501,
           "consumoPorDistancia": 0.4
         },
-         {
+        {
           "tipo": "Patrulla Policial",
           "id": 502,
           "consumoPorDistancia": 0.4
         },
         {
+          "tipo": "Patrulla Policial",
+          "id": 503,
+          "consumoPorDistancia": 0.4
+        },
+        {
           "tipo": "Oficial de Policía",
           "id": 601
+        },
+        {
+          "tipo": "Oficial de Policía",
+          "id": 602
         }
       ]
     }

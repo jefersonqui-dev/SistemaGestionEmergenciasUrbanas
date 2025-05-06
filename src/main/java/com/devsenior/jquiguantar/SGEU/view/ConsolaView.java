@@ -132,16 +132,17 @@ public class ConsolaView {
              return;
          }
          mostrarMensaje("\n--- Recursos Disponibles para Asignación Manual ---");
-          mostrarMensaje("ID - Tipo - Estado - Combustible - Base");
+         mostrarMensaje("ID | Tipo | Estado | Combustible | Base");
+         mostrarMensaje("----------------------------------------");
          for (Recurso r : recursos) {
-              String baseInfo = "";
+             String baseInfo = "";
              if (r instanceof Vehiculo) {
-                  Vehiculo v = (Vehiculo) r;
+                 Vehiculo v = (Vehiculo) r;
                  baseInfo = " - Base: " + v.getUbicacionBase().toString();
              }
-              mostrarMensaje(r.getId() + " - " + r.getTipo() + " - " + r.getEstado() + (r instanceof Vehiculo ? " - " + String.format("%.1f", ((Vehiculo)r).getNivelCombustible()) + "%" : "") + baseInfo);
+             mostrarMensaje(String.format("%-3d | %-10s | %-10s | %-10s | %s", r.getId(), r.getTipo(), r.getEstado(), (r instanceof Vehiculo ? String.format("%.1f", ((Vehiculo)r).getNivelCombustible()) + "%" : ""), baseInfo));
          }
-         mostrarMensaje("-------------------------------------------------");
+         mostrarMensaje("----------------------------------------");
      }
 
      public void mostrarMensajeSugerenciaRecursos(List<Recurso> sugerencias, BaseOperaciones baseSugerida) {
@@ -261,7 +262,7 @@ public class ConsolaView {
      public int solicitarIdEmergencia(List<Emergencia> emergenciasDisponibles) {
          mostrarMensaje("Ingrese el ID de la emergencia:");
          int id = solicitarNumeroEntero(""); // Usa el método existente
-          // Opcional: Validar si el ID existe en la lista de emergenciasDisponibles
+         // TODO: Validar si el ID existe en la lista de emergenciasDisponibles
          return id;
      }
 
