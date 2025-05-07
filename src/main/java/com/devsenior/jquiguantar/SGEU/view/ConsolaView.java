@@ -50,9 +50,9 @@ public class ConsolaView {
      // Menú para gestionar emergencias activas
      public void mostrarMenuGestionEmergenciasActivas() {
          System.out.println("\n--- Gestión de Emergencias Activas ---");
-         System.out.println("1. Atender próxima emergencia prioritaria (automático/manual)"); // Iniciar flujo de asignación
-         System.out.println("2. Iniciar repostaje de vehículo"); // Opción de gestión de recursos
-         System.out.println("3. Completar repostaje de vehículo"); // Opción de gestión de recursos
+         System.out.println("1. Atender Emergencia (automática/manual por ID)");
+         System.out.println("2. Iniciar repostaje de vehículo");
+         System.out.println("3. Completar repostaje de vehículo");
          System.out.println("4. Volver al menú principal");
          System.out.println("--------------------------------------");
      }
@@ -291,6 +291,11 @@ public class ConsolaView {
 
     public String solicitarConfirmacion(String mensaje) {
         System.out.print(mensaje + " (s/n): ");
+        return scanner.nextLine().trim().toLowerCase();
+    }
+
+    public String solicitarModoAtencionEmergencia() {
+        System.out.print("¿Desea atender la emergencia automáticamente según prioridad (a) o seleccionar una manualmente por ID (m)?: ");
         return scanner.nextLine().trim().toLowerCase();
     }
 

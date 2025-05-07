@@ -194,22 +194,14 @@ public class SistemaEmergencias implements Observable {
         }
 
         List<Recurso> recursosRealmenteAsignados = new ArrayList<>();
-        double distanciaAEmergencia = 0; // Inicializar a 0 por defecto
+        // double distanciaAEmergencia = 0; // Eliminado: se calculará individualmente para cada vehículo
 
-        // Calcular distancia solo si hay vehículos para asignar
-        if (!recursosAAsignar.isEmpty() && recursosAAsignar.get(0) instanceof Vehiculo) {
-             // Aquí hay una simplificación: asumes que todos los recursos inician desde la base del PRIMER vehículo.
-             // Una implementación más robusta debería considerar la ubicación actual de cada recurso disponible.
-             // Para este ejemplo, mantendremos tu lógica actual de cálculo de distancia simplificada.
-            Ubicacion origen = ((Vehiculo) recursosAAsignar.get(0)).getUbicacionBase(); // Origen: base del primer vehículo (simplificación)
-            distanciaAEmergencia = this.mapa.calcularDistancia(origen, emergencia.getUbicacion());
-
-             if (distanciaAEmergencia <= 0) {
-                 messages.add("Advertencia: Distancia calculada para la asignación no válida (" + String.format("%.2f", distanciaAEmergencia)
-                             + " km). No se simulará gasto de combustible para este viaje para vehículos.");
-                 distanciaAEmergencia = 0; // Neutralizar gasto de combustible si la distancia no es válida
-             }
-        }
+        // // Calcular distancia solo si hay vehículos para asignar // Lógica anterior eliminada
+        // if (!recursosAAsignar.isEmpty() && recursosAAsignar.get(0) instanceof Vehiculo) {
+        //      Ubicacion origen = ((Vehiculo) recursosAAsignar.get(0)).getUbicacionBase(); 
+        //      distanciaAEmergencia = this.mapa.calcularDistancia(origen, emergencia.getUbicacion());
+        //      if (distanciaAEmergencia <= 0) { ... }
+        // }
 
 
         for (Recurso recurso : recursosAAsignar) {
@@ -219,25 +211,46 @@ public class SistemaEmergencias implements Observable {
 
                 if (recurso instanceof Vehiculo) {
                     Vehiculo vehiculo = (Vehiculo) recurso;
-                    if (!vehiculo.tieneSuficienteCombustible(distanciaAEmergencia)) {
-                        messages.add(mensajeRecurso + "No asignado - Combustible insuficiente para el viaje estimado ("
-                                + String.format("%.2f", distanciaAEmergencia) + " km).");
+                    double distanciaParaEsteVehiculo = 0;
+                    Ubicacion origenVehiculo = vehiculo.getUbicacionBase(); // Asume que Vehiculo tiene este método
+                    Ubicacion destinoEmergencia = emergencia.getUbicacion(); // Asume que Emergencia tiene este método
+
+                    if (origenVehiculo == null || destinoEmergencia == null) {
+                        messages.add(mensajeRecurso + "No asignado - Ubicación de origen del vehículo o destino de emergencia no disponible.");
                         puedeAsignarse = false;
                     } else {
-                         // Simular el viaje y gasto de combustible (Paso 21) - Se mantiene la llamada al método del Vehiculo
-                         // El método moverA en Vehiculo ahora debe retornar el mensaje del gasto o el estado del viaje.
-                         // Por ahora, asumimos que moverA solo actualiza estado.
-                         vehiculo.moverA(emergencia.getUbicacion(), distanciaAEmergencia);
-                         messages.add(mensajeRecurso + "Simulando viaje a emergencia ID " + emergencia.getId() + " ("
-                             + String.format("%.2f", distanciaAEmergencia) + " km). Combustible restante: " + String.format("%.1f", vehiculo.getNivelCombustible()) + "%.");
+                        distanciaParaEsteVehiculo = this.mapa.calcularDistancia(origenVehiculo, destinoEmergencia);
 
+                        // Validar distancia calculada
+                        if (distanciaParaEsteVehiculo < 0) { // Distancia no puede ser negativa
+                            messages.add(mensajeRecurso + "No asignado - Cálculo de distancia inválido (" + String.format("%.2f", distanciaParaEsteVehiculo) + " km).");
+                            puedeAsignarse = false;
+                        } else if (distanciaParaEsteVehiculo == 0) {
+                            messages.add(mensajeRecurso + "Vehículo ya se encuentra en la ubicación de la emergencia o la distancia es cero. No se consumirá combustible por desplazamiento.");
+                            // No se impide la asignación, pero el consumo por distancia será cero.
+                        }
+
+                        if (puedeAsignarse) { // Solo proceder si la distancia es válida
+                            if (!vehiculo.tieneSuficienteCombustible(distanciaParaEsteVehiculo)) { // Asume que Vehiculo tiene este método
+                                messages.add(mensajeRecurso + "No asignado - Combustible insuficiente para el viaje estimado de "
+                                        + String.format("%.2f", distanciaParaEsteVehiculo) + " km.");
+                                puedeAsignarse = false;
+                            } else {
+                                // moverA debe consumir el combustible y actualizar el estado del vehículo
+                                vehiculo.moverA(destinoEmergencia, distanciaParaEsteVehiculo); // Asume que Vehiculo tiene este método
+                                messages.add(mensajeRecurso + "Asignado y simulando viaje a emergencia ID " + emergencia.getId() + " ("
+                                        + String.format("%.2f", distanciaParaEsteVehiculo) + " km). Combustible restante: " + String.format("%.1f", vehiculo.getNivelCombustible()) + "%.D");
+                                 // El mensaje ya indica que fue asignado, se confirmará abajo si todo fue bien.
+                            }
+                        }
                     }
                 }
 
                 if (puedeAsignarse) {
                     recurso.asignarEmergencia(emergencia);
                     recursosRealmenteAsignados.add(recurso);
-                    messages.add(mensajeRecurso + "Asignado exitosamente.");
+                    // Se mueve el mensaje de "Asignado exitosamente" más abajo para que sea general
+                    // messages.add(mensajeRecurso + "Asignado exitosamente."); 
                     overallSuccess = true; // Al menos un recurso fue asignado
                 }
 
@@ -246,11 +259,18 @@ public class SistemaEmergencias implements Observable {
             }
         }
 
-        if (recursosRealmenteAsignados.isEmpty()) {
-            messages.add("No se pudo asignar ningún recurso válido a Emergencia ID " + emergencia.getId());
-        } else {
+        if (!recursosRealmenteAsignados.isEmpty()) {
             messages.add("Asignación de recursos completada para Emergencia ID " + emergencia.getId()
                     + ". Recursos asignados: " + recursosRealmenteAsignados.size());
+            for(Recurso rAsignado : recursosRealmenteAsignados) {
+                messages.add("  - " + rAsignado.getTipo() + " (ID: " + rAsignado.getId() + ") asignado.");
+            }
+        } else if (overallSuccess) {
+            // Este caso es por si un recurso no vehicular fue asignado pero ningún vehículo, o si hubo errores con vehículos
+            // pero otros recursos sí. El mensaje de arriba es más general si hubo asignaciones.
+             messages.add("Algunos recursos fueron procesados para Emergencia ID " + emergencia.getId() + ", pero no todos pudieron ser asignados.");
+        } else {
+            messages.add("No se pudo asignar ningún recurso válido a Emergencia ID " + emergencia.getId());
         }
 
         return new AssignmentResult(overallSuccess, messages);
