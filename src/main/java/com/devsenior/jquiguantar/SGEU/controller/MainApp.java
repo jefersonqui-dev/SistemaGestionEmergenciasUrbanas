@@ -125,12 +125,17 @@ public class MainApp {
         sistema.registrarEmergencia(nuevaEmergencia);
 
         // Notificar a los observadores (bases) DESPUÉS de registrar la emergencia
-        view.mostrarMensaje("Notificando a las bases de operaciones sobre la nueva emergencia...");
+        view.mostrarMensaje("\nNotificando a las bases de operaciones sobre la nueva emergencia...");
         sistema.notifyObservers(nuevaEmergencia);
 
+        // Obtener y mostrar las notificaciones pendientes
+        List<BaseOperaciones.NotificacionEmergencia> notificaciones = sistema.getNotificacionesPendientes();
+        if (!notificaciones.isEmpty()) {
+            view.mostrarNotificacionesEmergencia(notificaciones);
+        }
 
         // Mensaje de confirmación amigable
-        view.mostrarMensaje("--------------------------------------------------------");
+        //view.mostrarMensaje("\n--------------------------------------------------------");
         view.mostrarMensaje(String.format("¡Emergencia registrada exitosamente!\nID: %d\nTipo: %s\nUbicación: (Lat: %.2f, Long: %.2f)\nGravedad: %s\n",
                 nuevaEmergencia.getId(), nuevaEmergencia.getTipo(), ubicacion.getLatitud(), ubicacion.getLongitud(), gravedad));
     }

@@ -166,6 +166,41 @@ public class ConsolaView {
           }
      }
 
+    public void mostrarNotificacionesEmergencia(List<BaseOperaciones.NotificacionEmergencia> notificaciones) {
+        if (notificaciones == null || notificaciones.isEmpty()) {
+            return;
+        }
+
+        StringBuilder mensaje = new StringBuilder();
+        String separador = "------------------------------------------------------------------------------------";
+        
+        mensaje.append("\n").append(separador).append("\n");
+        mensaje.append("                  NOTIFICACIONES DE EMERGENCIA\n");
+        mensaje.append(separador).append("\n");
+        
+        for (BaseOperaciones.NotificacionEmergencia notif : notificaciones) {
+            // Información principal de la notificación
+            mensaje.append("Base Notificada: ").append(notif.getNombreBase()).append("\n");
+            mensaje.append("Servicio: ").append(notif.getTipoServicio()).append("\n");
+            mensaje.append("Tipo de Emergencia: ").append(notif.getTipoEmergencia()).append("\n");
+            mensaje.append("Ubicación: (").append(String.format("%.2f, %.2f", 
+                notif.getUbicacion().getLatitud(), 
+                notif.getUbicacion().getLongitud())).append(")\n");
+            mensaje.append("ID Emergencia: ").append(notif.getIdEmergencia()).append("\n");
+            
+            // Si la base reacciona, mostrar el mensaje
+            if (notif.getReacciona()) {
+                mensaje.append("-> ").append(notif.getNombreBase())
+                      .append(" ha sido notificada y está evaluando la emergencia.\n");
+            }
+            
+            mensaje.append(separador).append("\n");
+        }
+        
+        mostrarMensaje(mensaje.toString());
+    }
+
+
 
     // --- Métodos para solicitar entrada al usuario ---
 

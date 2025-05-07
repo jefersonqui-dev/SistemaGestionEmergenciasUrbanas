@@ -6,6 +6,8 @@ import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergencia;
 import com.devsenior.jquiguantar.SGEU.model.interfaces.Responder;
 import com.devsenior.jquiguantar.SGEU.model.resources.EstadoRecurso;
 import com.devsenior.jquiguantar.SGEU.model.patterns.observer.Observer;
+import com.devsenior.jquiguantar.SGEU.model.emergencies.TipoEmergencia;
+import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.SistemaEmergencias;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -99,9 +101,6 @@ public class BaseOperaciones implements Responder, Observer {
     // Implementacion del metodo de la interfaz Observer
     @Override
     public void update(Emergencia nuevaEmergencia) {
-        System.out.println(getNombre() + " (" + getTipoServicioAsociado() + ") notificada de nueva emergencia: "
-                + nuevaEmergencia.getTipo() + " en " + nuevaEmergencia.getUbicacion() + " (ID: "
-                + nuevaEmergencia.getId() + ")");
         boolean reacciona = false;
         // Una base de bomberos reacciona a incendios, una base de policia a robos, una
         // ambulancia a accidentes
@@ -119,9 +118,47 @@ public class BaseOperaciones implements Responder, Observer {
                         .getTipo() == com.devsenior.jquiguantar.SGEU.model.emergencies.TipoEmergencia.ROBO;
                 break;
         }
-        if (reacciona) {
-            System.out.println(" -> " + getNombre() + "Considera esta Emergencia");
+        
+        // Crear un objeto que contenga toda la información de la notificación
+        NotificacionEmergencia notificacion = new NotificacionEmergencia(
+            getNombre(),
+            getTipoServicioAsociado(),
+            nuevaEmergencia.getTipo(),
+            nuevaEmergencia.getUbicacion(),
+            nuevaEmergencia.getId(),
+            reacciona
+        );
+        
+        // Notificar al sistema sobre la notificación
+        SistemaEmergencias.getInstance().notificarActualizacion(notificacion);
+    }
+
+    // Clase interna para encapsular la información de la notificación
+    public static class NotificacionEmergencia {
+        private final String nombreBase;
+        private final String tipoServicio;
+        private final TipoEmergencia tipoEmergencia;
+        private final Ubicacion ubicacion;
+        private final int idEmergencia;
+        private final boolean reacciona;
+
+        public NotificacionEmergencia(String nombreBase, String tipoServicio, TipoEmergencia tipoEmergencia,
+                                    Ubicacion ubicacion, int idEmergencia, boolean reacciona) {
+            this.nombreBase = nombreBase;
+            this.tipoServicio = tipoServicio;
+            this.tipoEmergencia = tipoEmergencia;
+            this.ubicacion = ubicacion;
+            this.idEmergencia = idEmergencia;
+            this.reacciona = reacciona;
         }
+
+        // Getters
+        public String getNombreBase() { return nombreBase; }
+        public String getTipoServicio() { return tipoServicio; }
+        public TipoEmergencia getTipoEmergencia() { return tipoEmergencia; }
+        public Ubicacion getUbicacion() { return ubicacion; }
+        public int getIdEmergencia() { return idEmergencia; }
+        public boolean getReacciona() { return reacciona; }
     }
 
     @Override
