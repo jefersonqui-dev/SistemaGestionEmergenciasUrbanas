@@ -37,6 +37,7 @@ public class SistemaEmergencias implements Observable {
     // Objeto para la lógica del mapa urbano (clase interna)
     private MapaUrbano mapa;
     private List<Observer> observers; // Lista de observadores
+    private List<BaseOperaciones.NotificacionEmergencia> notificacionesPendientes; // Lista de notificaciones pendientes
 
     // Estrategia de priorización de emergencias
     private PriorizacionStrategy estrategiaPriorizacionActual;
@@ -47,6 +48,7 @@ public class SistemaEmergencias implements Observable {
         this.basesOperaciones = new ArrayList<>();
         this.mapa = new MapaUrbano(); // crear instancia de la clase interna
         this.observers = new ArrayList<>();
+        this.notificacionesPendientes = new ArrayList<>();
         this.estrategiaPriorizacionActual = new PrioridadAltaStrategy();
 
         // La inicialización y adición de observadores se moverá al Controlador
@@ -476,5 +478,15 @@ public class SistemaEmergencias implements Observable {
 
         messages.add("Liberación de recursos completada para Emergencia ID " + emergencia.getId());
         return new LiberationResult(success, messages);
+    }
+
+    public void notificarActualizacion(BaseOperaciones.NotificacionEmergencia notificacion) {
+        this.notificacionesPendientes.add(notificacion);
+    }
+
+    public List<BaseOperaciones.NotificacionEmergencia> getNotificacionesPendientes() {
+        List<BaseOperaciones.NotificacionEmergencia> notificaciones = new ArrayList<>(this.notificacionesPendientes);
+        this.notificacionesPendientes.clear(); // Limpiar las notificaciones después de obtenerlas
+        return notificaciones;
     }
 }

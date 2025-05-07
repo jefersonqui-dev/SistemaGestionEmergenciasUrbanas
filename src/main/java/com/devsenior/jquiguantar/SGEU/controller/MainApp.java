@@ -125,12 +125,17 @@ public class MainApp {
         sistema.registrarEmergencia(nuevaEmergencia);
 
         // Notificar a los observadores (bases) DESPUÉS de registrar la emergencia
-        view.mostrarMensaje("Notificando a las bases de operaciones sobre la nueva emergencia...");
+        view.mostrarMensaje("\nNotificando a las bases de operaciones sobre la nueva emergencia...");
         sistema.notifyObservers(nuevaEmergencia);
 
+        // Obtener y mostrar las notificaciones pendientes
+        List<BaseOperaciones.NotificacionEmergencia> notificaciones = sistema.getNotificacionesPendientes();
+        if (!notificaciones.isEmpty()) {
+            view.mostrarNotificacionesEmergencia(notificaciones);
+        }
 
         // Mensaje de confirmación amigable
-        view.mostrarMensaje("--------------------------------------------------------");
+        //view.mostrarMensaje("\n--------------------------------------------------------");
         view.mostrarMensaje(String.format("¡Emergencia registrada exitosamente!\nID: %d\nTipo: %s\nUbicación: (Lat: %.2f, Long: %.2f)\nGravedad: %s\n",
                 nuevaEmergencia.getId(), nuevaEmergencia.getTipo(), ubicacion.getLatitud(), ubicacion.getLongitud(), gravedad));
     }
@@ -198,65 +203,72 @@ public class MainApp {
 
     // --- Flujo de asignación automática y manual (llamado desde gestionarEmergenciasActivas) ---
     private static void atenderProximaEmergenciaFlujo() {
-        view.mostrarMensaje("\n================= Atender Próxima Emergencia =================");
+        view.mostrarMensaje("\n================= Atender Emergencia =================");
 
-        Emergencia emergenciaAPriorizar = sistema.getProximaEmergenciaAPriorizar();
-
-        if (emergenciaAPriorizar == null) {
-            view.mostrarMensaje("No hay emergencias pendientes según la estrategia de priorización.");
+        // Obtener lista de emergencias no atendidas
+        List<Emergencia> emergenciasNoAtendidas = sistema.getEmergenciasNoAtendidas();
+        
+        if (emergenciasNoAtendidas.isEmpty()) {
+            view.mostrarMensaje("No hay emergencias pendientes de atención.");
             return;
         }
 
-        view.mostrarMensaje(String.format("Emergencia prioritaria seleccionada:\n  ID: %d\n  Tipo: %s\n  Ubicación: Latitud %.2f, Longitud %.2f\n  Gravedad: %s\n  Progreso: %.2f%%\n  Estado: %s\n  Tiempo Estimado: %d ms\n",
-                emergenciaAPriorizar.getId(),
-                emergenciaAPriorizar.getTipo(),
-                emergenciaAPriorizar.getUbicacion().getLatitud(),
-                emergenciaAPriorizar.getUbicacion().getLongitud(),
-                emergenciaAPriorizar.getNivelGravedad(),
-                emergenciaAPriorizar.getProgresoAtencion(),
-                emergenciaAPriorizar.isAtendida() ? "Resuelta" : "Pendiente",
-                emergenciaAPriorizar.getTiempoRespuestaEstimado()));
+        // Mostrar lista de emergencias disponibles
+        view.mostrarMensaje("\nEmergencias disponibles para atención:");
+        for (Emergencia emergencia : emergenciasNoAtendidas) {
+            view.mostrarMensaje(String.format("ID: %d - Tipo: %s - Gravedad: %s - Progreso: %.1f%%",
+                emergencia.getId(), emergencia.getTipo(), emergencia.getNivelGravedad(), emergencia.getProgresoAtencion()));
+        }
+
+        // Solicitar ID de la emergencia a atender
+        int idEmergencia = view.solicitarNumeroEntero("\nIngrese el ID de la emergencia a atender:");
+        Emergencia emergenciaSeleccionada = sistema.getEmergenciaById(idEmergencia);
+
+        if (emergenciaSeleccionada == null || emergenciaSeleccionada.isAtendida()) {
+            view.mostrarMensaje("ID de emergencia no válido o ya atendida.");
+            return;
+        }
+
+        view.mostrarMensaje(String.format("\nEmergencia seleccionada:\n  ID: %d\n  Tipo: %s\n  Ubicación: Latitud %.2f, Longitud %.2f\n  Gravedad: %s\n  Progreso: %.2f%%\n  Estado: %s\n  Tiempo Estimado: %d ms\n",
+                emergenciaSeleccionada.getId(),
+                emergenciaSeleccionada.getTipo(),
+                emergenciaSeleccionada.getUbicacion().getLatitud(),
+                emergenciaSeleccionada.getUbicacion().getLongitud(),
+                emergenciaSeleccionada.getNivelGravedad(),
+                emergenciaSeleccionada.getProgresoAtencion(),
+                emergenciaSeleccionada.isAtendida() ? "Resuelta" : "Pendiente",
+                emergenciaSeleccionada.getTiempoRespuestaEstimado()));
         view.mostrarMensaje("=============================================================");
 
         // Sugerir recursos automáticamente
-        List<Recurso> recursosSugeridos = sistema.sugerirRecursosAutomaticos(emergenciaAPriorizar);
+        List<Recurso> recursosSugeridos = sistema.sugerirRecursosAutomaticos(emergenciaSeleccionada);
 
         if (!recursosSugeridos.isEmpty()) {
-            // Puedes crear un método en ConsolaView para mostrar sugerencias de manera más formal si lo deseas
-            view.mostrarMensajeSugerenciaRecursos(recursosSugeridos, null); // Reutiliza el método existente
+            view.mostrarMensajeSugerenciaRecursos(recursosSugeridos, null);
 
-            String confirmacion = view.solicitarConfirmacion("¿Desea asignar estos recursos sugeridos a Emergencia ID " + emergenciaAPriorizar.getId() + "? (s/n)");
+            String confirmacion = view.solicitarConfirmacion("¿Desea asignar estos recursos sugeridos a Emergencia ID " + emergenciaSeleccionada.getId() + "? (s/n)");
 
             if (confirmacion.equals("s")) {
-                // Llamar al Modelo para asignar y capturar el resultado detallado (mensajes y éxito general)
-                SistemaEmergencias.AssignmentResult result = sistema.asignarRecursosAEmergencia(emergenciaAPriorizar, recursosSugeridos);
-                // Mostrar los mensajes de resultado de la asignación usando la Vista
+                SistemaEmergencias.AssignmentResult result = sistema.asignarRecursosAEmergencia(emergenciaSeleccionada, recursosSugeridos);
                 for (String msg : result.getMessages()) {
                     view.mostrarMensaje(msg);
                 }
 
-                // Si al menos un recurso fue asignado exitosamente, simular progreso
-                 if (result.isOverallSuccess()) {
-                    // La simulación de progreso podría ser más sofisticada, ligada al tiempo o recursos
-                    // Por ahora, mantenemos una simulación simple después de la asignación
-                    simularProgresoEmergencia(emergenciaAPriorizar); // Nota: La simulación principal sigue en el bucle principal
-                 } else {
-                     // Si overallSuccess es false, los mensajes ya deberían haber explicado por qué no se asignó nada
-                     view.mostrarMensaje("La asignación automática de recursos no fue exitosa.");
-                 }
-
-
+                if (result.isOverallSuccess()) {
+                    simularProgresoEmergencia(emergenciaSeleccionada);
+                } else {
+                    view.mostrarMensaje("La asignación automática de recursos no fue exitosa.");
+                }
             } else {
                 view.mostrarMensaje("Sugerencia automática declinada. Procediendo a asignación manual.");
-                asignarRecursosManualmenteAEmergencia(emergenciaAPriorizar);
+                asignarRecursosManualmenteAEmergencia(emergenciaSeleccionada);
             }
         } else {
-             view.mostrarMensaje("No se encontraron recursos disponibles para sugerir para esta emergencia.");
-             // Preguntar si desea intentar asignación manual si no hay sugerencias automáticas
-             String intentarManual = view.solicitarConfirmacion("¿Desea intentar asignar recursos manualmente a Emergencia ID " + emergenciaAPriorizar.getId() + "?");
-             if (intentarManual.equals("s")) {
-                 asignarRecursosManualmenteAEmergencia(emergenciaAPriorizar);
-             }
+            view.mostrarMensaje("No se encontraron recursos disponibles para sugerir para esta emergencia.");
+            String intentarManual = view.solicitarConfirmacion("¿Desea intentar asignar recursos manualmente a Emergencia ID " + emergenciaSeleccionada.getId() + "?");
+            if (intentarManual.equals("s")) {
+                asignarRecursosManualmenteAEmergencia(emergenciaSeleccionada);
+            }
         }
     }
 
