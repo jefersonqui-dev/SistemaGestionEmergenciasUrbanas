@@ -218,6 +218,7 @@ public class SistemaEmergencias implements Observable {
                     if (origenVehiculo == null || destinoEmergencia == null) {
                         messages.add(mensajeRecurso + "No asignado - Ubicación de origen del vehículo o destino de emergencia no disponible.");
                         puedeAsignarse = false;
+                        messages.add("----------------------------------");
                     } else {
                         distanciaParaEsteVehiculo = this.mapa.calcularDistancia(origenVehiculo, destinoEmergencia);
 
@@ -225,22 +226,41 @@ public class SistemaEmergencias implements Observable {
                         if (distanciaParaEsteVehiculo < 0) { // Distancia no puede ser negativa
                             messages.add(mensajeRecurso + "No asignado - Cálculo de distancia inválido (" + String.format("%.2f", distanciaParaEsteVehiculo) + " km).");
                             puedeAsignarse = false;
+                            messages.add("----------------------------------");
                         } else if (distanciaParaEsteVehiculo == 0) {
-                            messages.add(mensajeRecurso + "Vehículo ya se encuentra en la ubicación de la emergencia o la distancia es cero. No se consumirá combustible por desplazamiento.");
+                            messages.add(String.format("%s- Estado: Vehículo ya se encuentra en la ubicación de la emergencia (o distancia cero). No se consumirá combustible por desplazamiento.", mensajeRecurso));
                             // No se impide la asignación, pero el consumo por distancia será cero.
+                            messages.add("----------------------------------");
                         }
 
                         if (puedeAsignarse) { // Solo proceder si la distancia es válida
+                            double combustibleNecesario = distanciaParaEsteVehiculo * vehiculo.getConsumoPorDistancia();
                             if (!vehiculo.tieneSuficienteCombustible(distanciaParaEsteVehiculo)) { // Asume que Vehiculo tiene este método
-                                messages.add(mensajeRecurso + "No asignado - Combustible insuficiente para el viaje estimado de "
-                                        + String.format("%.2f", distanciaParaEsteVehiculo) + " km.");
+                                messages.add(String.format("%sNo asignado a Emergencia ID %d:\n" +
+                                                         "  - Motivo: Combustible insuficiente.\n" +
+                                                         "  - Base de Origen: %s\n" +
+                                                         "  - Distancia Requerida: %.2f km\n" +
+                                                         "  - Combustible Necesario (aprox.): %.2f litros\n" +
+                                                         "  - Combustible Actual: %.1f%%",
+                                                         mensajeRecurso, emergencia.getId(), origenVehiculo.toString(),
+                                                         distanciaParaEsteVehiculo, combustibleNecesario, vehiculo.getNivelCombustible()));
+                                messages.add("----------------------------------");
                                 puedeAsignarse = false;
                             } else {
                                 // moverA debe consumir el combustible y actualizar el estado del vehículo
                                 vehiculo.moverA(destinoEmergencia, distanciaParaEsteVehiculo); // Asume que Vehiculo tiene este método
-                                messages.add(mensajeRecurso + "Asignado y simulando viaje a emergencia ID " + emergencia.getId() + " ("
-                                        + String.format("%.2f", distanciaParaEsteVehiculo) + " km). Combustible restante: " + String.format("%.1f", vehiculo.getNivelCombustible()) + "%.D");
-                                 // El mensaje ya indica que fue asignado, se confirmará abajo si todo fue bien.
+                                double combustibleConsumido = combustibleNecesario; // Para simplificar, asumimos que lo necesario es lo que se consumirá si tieneSuficienteCombustible es true (considerando el margen del 10% ya en tieneSuficienteCombustible)
+                                // Para un cálculo más exacto del consumo real sin el margen del 10% para el mensaje, se podría hacer: vehiculo.getConsumoPorDistancia() * distanciaParaEsteVehiculo
+                                // Pero dado que `gastarCombustible` ya lo hace internamente y lo imprime, nos enfocamos en el mensaje de asignación.
+
+                                messages.add(String.format("%sAsignado a Emergencia ID %d:\n" +
+                                                         "  - Base de Origen: %s\n" +
+                                                         "  - Distancia a Emergencia: %.2f km\n" +
+                                                         "  - Combustible Consumido (estimado): %.2f litros\n" +
+                                                         "  - Nivel Combustible Restante: %.1f%%",
+                                                         mensajeRecurso, emergencia.getId(), origenVehiculo.toString(),
+                                                         distanciaParaEsteVehiculo, combustibleConsumido, vehiculo.getNivelCombustible()));
+                                messages.add("----------------------------------");
                             }
                         }
                     }
@@ -256,21 +276,30 @@ public class SistemaEmergencias implements Observable {
 
             } else {
                 messages.add(recurso.getTipo() + " (ID: " + recurso.getId() + "): No asignado - Estado actual: " + recurso.getEstado() + " (no está disponible).");
+                messages.add("----------------------------------");
             }
         }
 
         if (!recursosRealmenteAsignados.isEmpty()) {
-            messages.add("Asignación de recursos completada para Emergencia ID " + emergencia.getId()
-                    + ". Recursos asignados: " + recursosRealmenteAsignados.size());
-            for(Recurso rAsignado : recursosRealmenteAsignados) {
-                messages.add("  - " + rAsignado.getTipo() + " (ID: " + rAsignado.getId() + ") asignado.");
+            StringBuilder resumenAsignacion = new StringBuilder();
+            resumenAsignacion.append(String.format("\n--- Resumen de Asignación para Emergencia ID %d --- \n", emergencia.getId()));
+            resumenAsignacion.append(String.format("Total de recursos procesados para asignación: %d\n", recursosAAsignar.size()));
+            resumenAsignacion.append(String.format("Recursos asignados exitosamente: %d\n", recursosRealmenteAsignados.size()));
+
+            if (!recursosRealmenteAsignados.isEmpty()) {
+                resumenAsignacion.append("Recursos Asignados Detalle:\n");
+                for (Recurso rAsignado : recursosRealmenteAsignados) {
+                    resumenAsignacion.append(String.format("  - %s (ID: %d)\n", rAsignado.getTipo(), rAsignado.getId()));
+                }
             }
+            messages.add(resumenAsignacion.toString());
+
         } else if (overallSuccess) {
             // Este caso es por si un recurso no vehicular fue asignado pero ningún vehículo, o si hubo errores con vehículos
             // pero otros recursos sí. El mensaje de arriba es más general si hubo asignaciones.
-             messages.add("Algunos recursos fueron procesados para Emergencia ID " + emergencia.getId() + ", pero no todos pudieron ser asignados.");
+            messages.add(String.format("\n--- Notificación para Emergencia ID %d ---\nAlgunos recursos fueron procesados, pero no todos los seleccionados pudieron ser asignados. Revise los mensajes anteriores para detalles.", emergencia.getId()));
         } else {
-            messages.add("No se pudo asignar ningún recurso válido a Emergencia ID " + emergencia.getId());
+            messages.add(String.format("\n--- Fallo en Asignación para Emergencia ID %d ---\nNo se pudo asignar ningún recurso de los seleccionados. Revise los mensajes anteriores para detalles.", emergencia.getId()));
         }
 
         return new AssignmentResult(overallSuccess, messages);
