@@ -175,8 +175,7 @@ public class MainApp {
 
             switch (opcionGestion) {
                 case 1:
-                    // La opción 1 del sub-menú inicia el flujo de asignación (automático/manual)
-                    atenderProximaEmergenciaFlujo();
+                    iniciarFlujoAtencionEmergencia();
                     break;
                 case 2:
                     iniciarRepostajeFlujo();
@@ -201,9 +200,47 @@ public class MainApp {
         } while (opcionGestion != 4);
     }
 
+    // Nuevo método para gestionar el flujo de atención de emergencia (automático o manual)
+    private static void iniciarFlujoAtencionEmergencia() {
+        view.mostrarMensaje("\n--- Selección de Modo de Atención ---");
+        String modoAtencion = view.solicitarModoAtencionEmergencia();
+
+        if (modoAtencion.equals("a")) {
+            atenderProximaEmergenciaAutomaticamente();
+        } else if (modoAtencion.equals("m")) {
+            atenderEmergenciaPorIdFlujo();
+        } else {
+            view.mostrarMensaje("Opción de modo de atención no válida. Volviendo al menú de gestión.");
+        }
+    }
+
     // --- Flujo de asignación automática y manual (llamado desde gestionarEmergenciasActivas) ---
-    private static void atenderProximaEmergenciaFlujo() {
-        view.mostrarMensaje("\n================= Atender Emergencia =================");
+    private static void atenderProximaEmergenciaAutomaticamente() {
+        view.mostrarMensaje("\n================= Atender Próxima Emergencia Automáticamente =================");
+        Emergencia emergenciaPrioritaria = sistema.getProximaEmergenciaAPriorizar();
+
+        if (emergenciaPrioritaria == null) {
+            view.mostrarMensaje("No hay emergencias pendientes de atención según la estrategia de priorización actual.");
+            return;
+        }
+        
+        if (emergenciaPrioritaria.isAtendida()) {
+             view.mostrarMensaje("La emergencia prioritaria (ID: " + emergenciaPrioritaria.getId() + ") ya ha sido atendida o resuelta.");
+             // Opcionalmente, buscar la siguiente no atendida si este fuera el caso.
+             // Por ahora, simplemente informamos.
+             return;
+        }
+
+        view.mostrarMensaje("Emergencia seleccionada automáticamente (según prioridad):");
+        // Mostrar detalles de la emergencia seleccionada automáticamente
+        // (similar a como se hace en atenderProximaEmergenciaFlujo)
+        // Esto es importante para que el usuario sepa qué emergencia se está atendiendo.
+         procesarAsignacionRecursosParaEmergencia(emergenciaPrioritaria);
+    }
+
+    // Renombrado y ajustado para atender por ID
+    private static void atenderEmergenciaPorIdFlujo() {
+        view.mostrarMensaje("\n================= Atender Emergencia por ID =================");
 
         // Obtener lista de emergencias no atendidas
         List<Emergencia> emergenciasNoAtendidas = sistema.getEmergenciasNoAtendidas();
@@ -225,11 +262,22 @@ public class MainApp {
         Emergencia emergenciaSeleccionada = sistema.getEmergenciaById(idEmergencia);
 
         if (emergenciaSeleccionada == null || emergenciaSeleccionada.isAtendida()) {
-            view.mostrarMensaje("ID de emergencia no válido o ya atendida.");
+            view.mostrarMensaje("ID de emergencia no válido o la emergencia ya ha sido resuelta/atendida.");
             return;
         }
 
-        view.mostrarMensaje(String.format("\nEmergencia seleccionada:\n  ID: %d\n  Tipo: %s\n  Ubicación: Latitud %.2f, Longitud %.2f\n  Gravedad: %s\n  Progreso: %.2f%%\n  Estado: %s\n  Tiempo Estimado: %d ms\n",
+        // Llamar al método común para procesar la asignación de recursos
+        procesarAsignacionRecursosParaEmergencia(emergenciaSeleccionada);
+    }
+
+    // Nuevo método refactorizado para procesar la asignación de recursos una vez seleccionada la emergencia
+    private static void procesarAsignacionRecursosParaEmergencia(Emergencia emergenciaSeleccionada) {
+        if (emergenciaSeleccionada == null) { // Doble check por si acaso
+            view.mostrarMensaje("Error: No se ha seleccionado una emergencia válida.");
+            return;
+        }
+
+        view.mostrarMensaje(String.format("\nProcesando Emergencia Seleccionada:\n  ID: %d\n  Tipo: %s\n  Ubicación: Latitud %.2f, Longitud %.2f\n  Gravedad: %s\n  Progreso: %.2f%%\n  Estado: %s\n  Tiempo Estimado: %d ms\n",
                 emergenciaSeleccionada.getId(),
                 emergenciaSeleccionada.getTipo(),
                 emergenciaSeleccionada.getUbicacion().getLatitud(),
@@ -244,7 +292,7 @@ public class MainApp {
         List<Recurso> recursosSugeridos = sistema.sugerirRecursosAutomaticos(emergenciaSeleccionada);
 
         if (!recursosSugeridos.isEmpty()) {
-            view.mostrarMensajeSugerenciaRecursos(recursosSugeridos, null);
+            view.mostrarMensajeSugerenciaRecursos(recursosSugeridos, null); // Asumimos que no hay base sugerida por ahora
 
             String confirmacion = view.solicitarConfirmacion("¿Desea asignar estos recursos sugeridos a Emergencia ID " + emergenciaSeleccionada.getId() + "? (s/n)");
 
@@ -257,120 +305,20 @@ public class MainApp {
                 if (result.isOverallSuccess()) {
                     simularProgresoEmergencia(emergenciaSeleccionada);
                 } else {
-                    view.mostrarMensaje("La asignación automática de recursos no fue exitosa.");
+                    view.mostrarMensaje("La asignación automática de recursos no fue exitosa. Puede intentar la asignación manual si lo desea.");
                 }
             } else {
                 view.mostrarMensaje("Sugerencia automática declinada. Procediendo a asignación manual.");
                 asignarRecursosManualmenteAEmergencia(emergenciaSeleccionada);
             }
         } else {
-            view.mostrarMensaje("No se encontraron recursos disponibles para sugerir para esta emergencia.");
-            String intentarManual = view.solicitarConfirmacion("¿Desea intentar asignar recursos manualmente a Emergencia ID " + emergenciaSeleccionada.getId() + "?");
+            view.mostrarMensaje("No se encontraron recursos disponibles para sugerir automáticamente para esta emergencia.");
+            String intentarManual = view.solicitarConfirmacion("¿Desea intentar asignar recursos manualmente a Emergencia ID " + emergenciaSeleccionada.getId() + "? (s/n)");
             if (intentarManual.equals("s")) {
                 asignarRecursosManualmenteAEmergencia(emergenciaSeleccionada);
             }
         }
     }
-
-    // Nuevo método auxiliar para asignar recursos manualmente a una emergencia específica
-    private static void asignarRecursosManualmenteAEmergencia(Emergencia emergencia) {
-        view.mostrarMensaje("\n--- Asignación Manual para Emergencia ID " + emergencia.getId() + " ---");
-
-        List<Recurso> recursosAAsignar = new ArrayList<>();
-        String continuarAsignando;
-
-        do {
-            view.mostrarMensaje("\n--- Seleccionar Recurso ---");
-
-            // Mostrar recursos DISPONIBLES (considerando estado y combustible) por tipo
-            // IDEALMENTE: Implementar un método en SistemaEmergencias que filtre recursos disponibles
-            // relevantes para el tipo de emergencia, o por base cercana, etc.
-            // Por ahora, mostramos todos los disponibles, pero la lógica de selección del usuario es clave.
-            // view.mostrarMensaje("Recursos Disponibles:"); // Este mensaje ya está en mostrarRecursosDisponiblesParaAsignacionManual
-            List<Recurso> todosRecursosDisponibles = sistema.getAllRecursosDisponibles(); // Obtener todos los disponibles
-            if (todosRecursosDisponibles.isEmpty()) {
-                view.mostrarMensaje("No hay recursos disponibles para asignar.");
-                break; // Salir del bucle de selección manual si no hay recursos disponibles
-            }
-
-            // Mostrar solo los recursos disponibles que no han sido ya seleccionados para esta asignación manual
-             List<Recurso> recursosDisponiblesNoSeleccionados = new ArrayList<>(todosRecursosDisponibles);
-             recursosDisponiblesNoSeleccionados.removeAll(recursosAAsignar);
-
-             if(recursosDisponiblesNoSeleccionados.isEmpty() && !recursosAAsignar.isEmpty()){
-                 view.mostrarMensaje("Todos los recursos disponibles han sido seleccionados para esta asignación manual.");
-                 break; // Salir del bucle si todos los disponibles ya fueron seleccionados
-             } else if (recursosDisponiblesNoSeleccionados.isEmpty() && recursosAAsignar.isEmpty()){
-                  view.mostrarMensaje("No hay recursos disponibles para asignar.");
-                  break; // Salir si no hay ningún recurso disponible
-             }
-
-
-            view.mostrarRecursosDisponiblesParaAsignacionManual(recursosDisponiblesNoSeleccionados); // Mostrar solo los no seleccionados
-
-
-            int idRecursoSeleccionado = view.solicitarNumeroEntero("Ingrese el ID del recurso a asignar (o 0 para finalizar selección):");
-
-            if (idRecursoSeleccionado == 0) {
-                break; // El usuario quiere finalizar la selección manual
-            }
-
-            Recurso recursoParaAsignar = sistema.getRecursoById(idRecursoSeleccionado);
-
-            if (recursoParaAsignar != null) {
-                 // Verifica si el recurso ya fue seleccionado para evitar duplicados en la lista temporal
-                 if (!recursosAAsignar.contains(recursoParaAsignar)) {
-                    // Verifica si el recurso está disponible antes de añadirlo a la lista para intentar asignar
-                    if (recursoParaAsignar.getEstado() == EstadoRecurso.DISPONIBLE) {
-                         recursosAAsignar.add(recursoParaAsignar);
-                         view.mostrarMensaje("Recurso " + recursoParaAsignar.getTipo() + " (ID: " + recursoParaAsignar.getId() + ") añadido a la lista de asignación manual.");
-                    } else {
-                         view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no está DISPONIBLE. Estado actual: " + recursoParaAsignar.getEstado());
-                    }
-                 } else {
-                     view.mostrarMensaje("Este recurso ya ha sido seleccionado para asignación manual.");
-                 }
-            } else {
-                view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no encontrado.");
-            }
-
-            // Continuar preguntando si desea seleccionar otro recurso si hay recursos disponibles que no se han seleccionado
-             List<Recurso> recursosDisponiblesRestantes = new ArrayList<>(todosRecursosDisponibles);
-             recursosDisponiblesRestantes.removeAll(recursosAAsignar);
-
-             if (!recursosDisponiblesRestantes.isEmpty()) {
-                continuarAsignando = view.solicitarConfirmacion("¿Desea seleccionar otro recurso para asignar a Emergencia ID " + emergencia.getId() + "?");
-             } else {
-                 continuarAsignando = "n"; // Ya no hay más recursos disponibles para seleccionar
-                 // view.mostrarMensaje("No hay más recursos disponibles para añadir a la lista de asignación manual."); // Mensaje ya manejado arriba
-             }
-
-
-        } while (continuarAsignando.equals("s"));
-
-        // Intentar asignar los recursos seleccionados manualmente (llama al Modelo)
-        if (!recursosAAsignar.isEmpty()) {
-            view.mostrarMensaje("\nIntentando asignar recursos seleccionados manualmente...");
-            // Llamar al Modelo para asignar y capturar el resultado detallado (mensajes y éxito general)
-            SistemaEmergencias.AssignmentResult result = sistema.asignarRecursosAEmergencia(emergencia, recursosAAsignar);
-
-            // Mostrar los mensajes de resultado de la asignación usando la Vista
-            for (String msg : result.getMessages()) {
-                view.mostrarMensaje(msg);
-            }
-
-            // Si al menos un recurso fue asignado exitosamente, simular progreso
-            if (result.isOverallSuccess()) {
-                simularProgresoEmergencia(emergencia); // Nota: La simulación principal sigue en el bucle principal
-            } else {
-                 view.mostrarMensaje("La asignación manual de recursos no fue exitosa.");
-            }
-
-        } else {
-            view.mostrarMensaje("No se seleccionaron recursos para asignación manual.");
-        }
-    }
-
 
     // --- Flujos para iniciar y completar repostaje (llamados desde gestionarEmergenciasActivas) ---
 
@@ -497,7 +445,103 @@ public class MainApp {
          // view.mostrarMensaje(String.format("Avance inicial simulado. Progreso actual: %.1f%%", emergencia.getProgresoAtencion()));
     }
 
-     // Removido el método atenderEmergenciaManual ya que su lógica se integró en gestionarEmergenciasActivas
-     // Removido el método liberarRecursosDeEmergencia ya que se movió al Modelo (SistemaEmergencias)
+    // Nuevo método auxiliar para asignar recursos manualmente a una emergencia específica
+    private static void asignarRecursosManualmenteAEmergencia(Emergencia emergencia) {
+        view.mostrarMensaje("\n--- Asignación Manual para Emergencia ID " + emergencia.getId() + " ---");
+
+        List<Recurso> recursosAAsignar = new ArrayList<>();
+        String continuarAsignando;
+
+        do {
+            view.mostrarMensaje("\n--- Seleccionar Recurso ---");
+
+            // Mostrar recursos DISPONIBLES (considerando estado y combustible) por tipo
+            // IDEALMENTE: Implementar un método en SistemaEmergencias que filtre recursos disponibles
+            // relevantes para el tipo de emergencia, o por base cercana, etc.
+            // Por ahora, mostramos todos los disponibles, pero la lógica de selección del usuario es clave.
+            // view.mostrarMensaje("Recursos Disponibles:"); // Este mensaje ya está en mostrarRecursosDisponiblesParaAsignacionManual
+            List<Recurso> todosRecursosDisponibles = sistema.getAllRecursosDisponibles(); // Obtener todos los disponibles
+            if (todosRecursosDisponibles.isEmpty()) {
+                view.mostrarMensaje("No hay recursos disponibles para asignar.");
+                break; // Salir del bucle de selección manual si no hay recursos disponibles
+            }
+
+            // Mostrar solo los recursos disponibles que no han sido ya seleccionados para esta asignación manual
+             List<Recurso> recursosDisponiblesNoSeleccionados = new ArrayList<>(todosRecursosDisponibles);
+             recursosDisponiblesNoSeleccionados.removeAll(recursosAAsignar);
+
+             if(recursosDisponiblesNoSeleccionados.isEmpty() && !recursosAAsignar.isEmpty()){
+                 view.mostrarMensaje("Todos los recursos disponibles han sido seleccionados para esta asignación manual.");
+                 break; // Salir del bucle si todos los disponibles ya fueron seleccionados
+             } else if (recursosDisponiblesNoSeleccionados.isEmpty() && recursosAAsignar.isEmpty()){
+                  view.mostrarMensaje("No hay recursos disponibles para asignar.");
+                  break; // Salir si no hay ningún recurso disponible
+             }
+
+
+            view.mostrarRecursosDisponiblesParaAsignacionManual(recursosDisponiblesNoSeleccionados); // Mostrar solo los no seleccionados
+
+
+            int idRecursoSeleccionado = view.solicitarNumeroEntero("Ingrese el ID del recurso a asignar (o 0 para finalizar selección):");
+
+            if (idRecursoSeleccionado == 0) {
+                break; // El usuario quiere finalizar la selección manual
+            }
+
+            Recurso recursoParaAsignar = sistema.getRecursoById(idRecursoSeleccionado);
+
+            if (recursoParaAsignar != null) {
+                 // Verifica si el recurso ya fue seleccionado para evitar duplicados en la lista temporal
+                 if (!recursosAAsignar.contains(recursoParaAsignar)) {
+                    // Verifica si el recurso está disponible antes de añadirlo a la lista para intentar asignar
+                    if (recursoParaAsignar.getEstado() == EstadoRecurso.DISPONIBLE) {
+                         recursosAAsignar.add(recursoParaAsignar);
+                         view.mostrarMensaje("Recurso " + recursoParaAsignar.getTipo() + " (ID: " + recursoParaAsignar.getId() + ") añadido a la lista de asignación manual.");
+                    } else {
+                         view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no está DISPONIBLE. Estado actual: " + recursoParaAsignar.getEstado());
+                    }
+                 } else {
+                     view.mostrarMensaje("Este recurso ya ha sido seleccionado para asignación manual.");
+                 }
+            } else {
+                view.mostrarMensaje("Recurso con ID " + idRecursoSeleccionado + " no encontrado.");
+            }
+
+            // Continuar preguntando si desea seleccionar otro recurso si hay recursos disponibles que no se han seleccionado
+             List<Recurso> recursosDisponiblesRestantes = new ArrayList<>(todosRecursosDisponibles);
+             recursosDisponiblesRestantes.removeAll(recursosAAsignar);
+
+             if (!recursosDisponiblesRestantes.isEmpty()) {
+                continuarAsignando = view.solicitarConfirmacion("¿Desea seleccionar otro recurso para asignar a Emergencia ID " + emergencia.getId() + "?");
+             } else {
+                 continuarAsignando = "n"; // Ya no hay más recursos disponibles para seleccionar
+                 // view.mostrarMensaje("No hay más recursos disponibles para añadir a la lista de asignación manual."); // Mensaje ya manejado arriba
+             }
+
+
+        } while (continuarAsignando.equals("s"));
+
+        // Intentar asignar los recursos seleccionados manualmente (llama al Modelo)
+        if (!recursosAAsignar.isEmpty()) {
+            view.mostrarMensaje("\nIntentando asignar recursos seleccionados manualmente...");
+            // Llamar al Modelo para asignar y capturar el resultado detallado (mensajes y éxito general)
+            SistemaEmergencias.AssignmentResult result = sistema.asignarRecursosAEmergencia(emergencia, recursosAAsignar);
+
+            // Mostrar los mensajes de resultado de la asignación usando la Vista
+            for (String msg : result.getMessages()) {
+                view.mostrarMensaje(msg);
+            }
+
+            // Si al menos un recurso fue asignado exitosamente, simular progreso
+            if (result.isOverallSuccess()) {
+                simularProgresoEmergencia(emergencia); // Nota: La simulación principal sigue en el bucle principal
+            } else {
+                 view.mostrarMensaje("La asignación manual de recursos no fue exitosa.");
+            }
+
+        } else {
+            view.mostrarMensaje("No se seleccionaron recursos para asignación manual.");
+        }
+    }
 
 }
