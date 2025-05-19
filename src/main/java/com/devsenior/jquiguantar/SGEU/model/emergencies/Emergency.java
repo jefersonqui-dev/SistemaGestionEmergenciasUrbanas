@@ -1,0 +1,51 @@
+package com.devsenior.jquiguantar.SGEU.model.emergencies;
+
+import com.devsenior.jquiguantar.SGEU.model.util.Location;
+
+public class Emergency {
+
+    private EmergencyType tipo;
+    private SeverityLevel nivelGravedad;
+    private Location ubicacion;
+    private long tiempoEstimado;
+    private boolean atendida;
+
+    public Emergency(EmergencyType tipo, SeverityLevel nivelGravedad, Location ubicacion, long tiempoEstimado) {
+        this.tipo = tipo;
+        this.nivelGravedad = nivelGravedad;
+        this.ubicacion = ubicacion;
+        this.tiempoEstimado = tiempoEstimado;
+        // this.atendida = atendida;
+
+    }
+
+    public EmergencyType getTipo() {
+        return tipo;
+    }
+
+    public SeverityLevel getNivelGravedad() {
+        return nivelGravedad;
+    }
+
+    public Location getUbicacion() {
+        return ubicacion;
+    }
+
+    public long getTiempoEstimado() {
+        return tiempoEstimado;
+    }
+
+    public boolean isAtendida() {
+        return atendida;
+    }
+
+    @Override
+    public String toString() {
+        return "Emergencia [tipo=" + tipo +
+                ", nivelGravedad=" + nivelGravedad +
+                ", ubicacion=" + ubicacion +
+                ", tiempoEstimado=" + tiempoEstimado +
+                ", atendida=" + atendida + "]";
+    }
+
+}
