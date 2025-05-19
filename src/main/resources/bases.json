@@ -1,11 +1,12 @@
-[
+{
+  "basesOperativas": [
     {
-      "id": "BOMBEROS_ESTACION_CENTRAL",
-      "nombre": "Estación Central de Bomberos",
+      "id": "BOMBEROS_GUACHUCAL",
+      "nombre": "Estacion de Bomberos de Guachucal",
       "tipoServicio": "BOMBEROS",
       "ubicacion": {
-        "latitud": -34.6037,
-        "longitud": -58.3816
+        "latitud": 0.956194827150437,
+        "longitud": -77.77138792265163
       },
       "recursosIniciales": [
         {
@@ -33,12 +34,12 @@
       ]
     },
     {
-      "id": "AMBULANCIA_HOSPITAL_PRINCIPAL",
-      "nombre": "Hospital Principal",
+      "id": "HOSPITAL_GUACHUCAL",
+      "nombre": "Hospital local de Guachucal",
       "tipoServicio": "AMBULANCIA",
       "ubicacion": {
-        "latitud": -34.5936,
-        "longitud": -58.3878
+        "latitud": 0.9583135903796616,
+        "longitud": -77.73448110547933
       },
       "recursosIniciales": [
         {
@@ -62,12 +63,12 @@
       ]
     },
     {
-      "id": "POLICIA_COMISARIA_CENTRO",
-      "nombre": "Comisaría Centro",
+      "id": "POLICIA_GUACHUCAL",
+      "nombre": "Estacion de Policia de Guachucal",
       "tipoServicio": "POLICIA",
       "ubicacion": {
-        "latitud": -34.6084,
-        "longitud": -58.3721
+        "latitud": 0.962137299505398,
+        "longitud": -77.73063742755245
       },
       "recursosIniciales": [
         {
@@ -95,4 +96,43 @@
         }
       ]
     }
+  ],
+  "puntosReferencia": [
+    {
+      "id": "PARQUE_PRINCIPAL",
+      "nombre": "Parque Central de Guachucal",
+      "descripcion": "Plaza central del municipio, punto de encuentro principal",
+      "ubicacion": {
+        "latitud": 0.9612873299369811,
+        "longitud": -77.73101296102986
+      }
+    },
+    {
+      "id": "GALERIA_MUNICIPAL",
+      "nombre": "Mercado Municipal",
+      "descripcion": "Galeria comercial principal del municipio",
+      "ubicacion": {
+        "latitud": 0.961808714716885,
+        "longitud": -77.73277605276262
+      }
+    },
+    {
+      "id": "CUATRO_ESQUINAS",
+      "nombre": "Terminal de Transporte",
+      "descripcion": "Punto de llegada y salida de buses interurbanos",
+      "ubicacion": {
+        "latitud": 0.9596571136003512,
+        "longitud": -77.73296688528741
+      }
+    },
+    {
+      "id": "OLEODUCTO_TRASANDINO",
+      "nombre": "Carretera Nacional",
+      "descripcion": "Punto Cercano Donde atraviesa el Oleoducto",
+      "ubicacion": {
+        "latitud": 0.9959799033594275,
+        "longitud": -77.71974836266301
+      }
+    }
   ]
+}

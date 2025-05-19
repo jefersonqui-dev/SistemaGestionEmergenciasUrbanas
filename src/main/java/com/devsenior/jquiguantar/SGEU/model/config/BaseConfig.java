@@ -1,36 +1,45 @@
 package com.devsenior.jquiguantar.SGEU.model.config;
 
-import java.util.List;
-
 public class BaseConfig {
     private String id;
     private String nombre;
     private String tipoServicio;
-    private UbicacionConfig ubicacion;
-    private List<RecursoConfig> recursosIniciales;
+    private LocationSettings ubicacion;
 
-    // Getters
+    // private List<ResourcesConfig> initialResources;
+    public BaseConfig() {
+    }
+
     public String getId() {
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getNombre() {
         return nombre;
     }
 
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
     public String getTipoServicio() {
         return tipoServicio;
     }
 
-    public UbicacionConfig getUbicacion() {
+    public void setTipoServicio(String tipoServicio) {
+        this.tipoServicio = tipoServicio;
+    }
+
+    public LocationSettings getUbicacion() {
         return ubicacion;
     }
 
-    public List<RecursoConfig> getRecursosIniciales() {
-        return recursosIniciales;
+    public void setUbicacion(LocationSettings ubicacion) {
+        this.ubicacion = ubicacion;
     }
 
-    // constructor
-    public BaseConfig() {
-    }
 }
