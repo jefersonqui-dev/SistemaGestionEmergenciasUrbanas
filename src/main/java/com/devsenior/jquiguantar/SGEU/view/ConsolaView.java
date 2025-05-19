@@ -11,6 +11,7 @@ import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Utilities;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
+import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 
 
 public class ConsolaView {
@@ -129,5 +130,36 @@ public class ConsolaView {
 
     public void showMessaje(String messaje) {
         System.out.println(messaje);
+    }
+
+    public SeverityLevel requestSeverityLevel() {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Registrar Nueva Emergencia", "Nivel de Gravedad");
+        List<SeverityLevel> levels = Arrays.asList(SeverityLevel.values());
+        //mostramos las opciones
+        for(int i = 0; i < levels.size(); i++){
+            SeverityLevel level = levels.get(i);
+            showMessaje(String.format("%d. %s", i + 1, level.name()));
+        }
+        while(true){
+            try {
+                int option = requestInteger("Ingrese el Nivel de Gravedad (1-" + levels.size() + "): ");
+                if (option >= 1 && option <= levels.size()) {
+                    SeverityLevel selectedLevel = levels.get(option - 1);
+                    showMessaje(String.format("Nivel de Gravedad Seleccionado: %s",selectedLevel.name()));
+                    showMessaje("Presione Enter para continuar...");
+                    scanner.nextLine();
+                    Utilities.cleanConsole();
+                    return selectedLevel;
+                } else {
+                    showMessaje("Error: Por favor ingrese un numero entre 1 y " + levels.size());
+                }
+            } catch (Exception e) {
+                showMessaje("Error: Por favor ingrese un numero valido");
+            }
+        }
+
+        
+        
     }
 }

@@ -4,6 +4,7 @@ package com.devsenior.jquiguantar.SGEU.controller;
 import com.devsenior.jquiguantar.SGEU.view.ConsolaView;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
+import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 
 
 
@@ -42,6 +43,8 @@ public class MainApp {
 
         EmergencyType type = view.requestEmergencyType();
         Location location = view.requestLocation();
+        SeverityLevel level = view.requestSeverityLevel();
+        
 
     }
 }
