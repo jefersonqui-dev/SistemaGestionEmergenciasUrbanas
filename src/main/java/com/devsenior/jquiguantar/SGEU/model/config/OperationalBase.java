@@ -9,20 +9,7 @@ public class OperationalBase {
     private double averageSpeed; //km/h
 
     public OperationalBase(){
-        switch (serviceType) {
-            case "BOMBEROS":
-                this.averageSpeed = 60.0;
-                break;
-            case "AMBULANCIA":
-                this.averageSpeed = 80.0;
-                break;
-            case "POLICIA":
-                this.averageSpeed = 50.0;
-                break;
-            default:
-                this.averageSpeed = 50.0;
-                break;
-        }
+ 
     }
     //Getters
     public String getId() {
@@ -53,6 +40,20 @@ public class OperationalBase {
     }
     public void setServiceType(String serviceType) {
         this.serviceType = serviceType;
+        switch (serviceType) {
+            case "BOMBEROS":
+                this.averageSpeed = 40.0;
+                break;
+            case "AMBULANCIA":
+                this.averageSpeed = 40.0;
+                break;
+            case "POLICIA":
+                this.averageSpeed = 50.0;
+                break;
+            default:
+                this.averageSpeed = 50.0;
+                break;
+        }
     }
     public void setLocation(Location location) {
         this.location = location;
@@ -60,9 +61,4 @@ public class OperationalBase {
     public void setAverageSpeed(double averageSpeed) {
         this.averageSpeed = averageSpeed;
     }
-    public double calculateTimeResponse(Location emergencyLocation){
-        double distance = this.location.distanciaKm(emergencyLocation);
-        return (distance / this.averageSpeed) * 60;
-    }
-    
 }

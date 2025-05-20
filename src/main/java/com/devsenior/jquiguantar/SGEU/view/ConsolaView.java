@@ -175,4 +175,16 @@ public class ConsolaView {
         scanner.nextLine();
         Utilities.cleanConsole();
     }
+
+    public void showTimeResponse(double timeResponse) {
+        Utilities.printTitle("Registrar Nueva Emergencia", "Tiempo Estimado");
+        if (timeResponse >= 0) {
+            showMessaje(String.format("Tiempo estimado de respuesta: %.2f minutos", timeResponse));
+        } else {
+            showMessaje("No se pudo calcular el tiempo de respuesta");
+        }
+        showMessaje("Presione Enter para continuar...");
+        scanner.nextLine();
+        Utilities.cleanConsole();
+    }
 }

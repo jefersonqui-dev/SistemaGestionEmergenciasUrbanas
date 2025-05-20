@@ -5,15 +5,17 @@ import com.devsenior.jquiguantar.SGEU.view.ConsolaView;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
-
-
+import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.BasicTimeResponseStrategy;
+import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.TimeCalculation;
 
 public class MainApp {
     private static ConsolaView view;
     // private static EmergencySistem sistem;
+    private static TimeCalculation timeCalculation;
 
     public static void main(String[] args) {
         view = new ConsolaView();
+        timeCalculation = new BasicTimeResponseStrategy();
         int mainOption;
         do {
             view.showMenu();
@@ -40,15 +42,11 @@ public class MainApp {
     }
 
     private static void registerNewEmergency() {
-
         EmergencyType type = view.requestEmergencyType();
         Location location = view.requestLocation();
         SeverityLevel level = view.requestSeverityLevel();
         //Ahora calculamos el tiempo estimado de respuesta
-        long timeResponse = calculateTimeResponse(type, level);
-        //Ahora mostramos el tiempo estimado de respuesta
-        
-        
-
+        double timeResponse = timeCalculation.CalculateTime(type, location);
+       // view.showTimeResponse(timeResponse);
     }
 }
