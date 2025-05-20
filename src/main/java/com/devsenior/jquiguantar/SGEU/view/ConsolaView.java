@@ -162,4 +162,17 @@ public class ConsolaView {
         
         
     }
+
+    public void showEstimatedResponseTime(double timeResponse) {
+        if (timeResponse < 0) {
+            showMessaje("No hay bases operativas disponibles para este tipo de emergencia.");
+        } else {
+            int minutos = (int) timeResponse;
+            int segundos = (int) ((timeResponse - minutos) * 60);
+            showMessaje(String.format("Tiempo estimado de respuesta: %d minutos y %d segundos", minutos, segundos));
+        }
+        showMessaje("Presione Enter para continuar...");
+        scanner.nextLine();
+        Utilities.cleanConsole();
+    }
 }

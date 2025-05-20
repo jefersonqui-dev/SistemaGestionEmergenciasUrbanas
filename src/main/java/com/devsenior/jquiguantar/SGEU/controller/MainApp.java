@@ -44,6 +44,10 @@ public class MainApp {
         EmergencyType type = view.requestEmergencyType();
         Location location = view.requestLocation();
         SeverityLevel level = view.requestSeverityLevel();
+        //Ahora calculamos el tiempo estimado de respuesta
+        long timeResponse = calculateTimeResponse(type, level);
+        //Ahora mostramos el tiempo estimado de respuesta
+        
         
 
     }
