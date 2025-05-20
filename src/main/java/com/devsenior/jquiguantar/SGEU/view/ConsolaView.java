@@ -86,9 +86,6 @@ public class ConsolaView {
                 if (option >= 1 && option <= points.size()) {
                     PredefinedLocation selectedPoint = points.get(option - 1);
                     LocationSettings locationSettings = selectedPoint.getLocation();
-                    showMessaje(String.format("Ubicacion seleccionada: %s", selectedPoint.getNombre()));
-                    showMessaje("Presione Enter para continuar...");
-                    scanner.nextLine(); // Consumir la linea
                     Utilities.cleanConsole();
                     return new Location(locationSettings.getLatitude(), locationSettings.getLongitude());
                 } else {
@@ -146,9 +143,9 @@ public class ConsolaView {
                 int option = requestInteger("Ingrese el Nivel de Gravedad (1-" + levels.size() + "): ");
                 if (option >= 1 && option <= levels.size()) {
                     SeverityLevel selectedLevel = levels.get(option - 1);
-                    showMessaje(String.format("Nivel de Gravedad Seleccionado: %s",selectedLevel.name()));
-                    showMessaje("Presione Enter para continuar...");
-                    scanner.nextLine();
+                    // showMessaje(String.format("Nivel de Gravedad Seleccionado: %s",selectedLevel.name()));
+                    // showMessaje("Presione Enter para continuar...");
+                    // scanner.nextLine();
                     Utilities.cleanConsole();
                     return selectedLevel;
                 } else {
