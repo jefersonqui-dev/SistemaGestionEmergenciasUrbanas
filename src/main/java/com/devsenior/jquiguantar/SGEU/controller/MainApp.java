@@ -7,6 +7,7 @@ import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.BasicTimeResponseStrategy;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.TimeCalculation;
+import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 
 public class MainApp {
     private static ConsolaView view;
@@ -45,8 +46,9 @@ public class MainApp {
         EmergencyType type = view.requestEmergencyType();
         Location location = view.requestLocation();
         SeverityLevel level = view.requestSeverityLevel();
-        //Ahora calculamos el tiempo estimado de respuesta
         double timeResponse = timeCalculation.CalculateTime(type, location);
-       // view.showTimeResponse(timeResponse);
+        long tiempoEstimado = Math.round(timeResponse);
+        Emergency newEmergency = new Emergency(type, level, location, tiempoEstimado);
+        
     }
 }
