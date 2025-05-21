@@ -8,15 +8,17 @@ import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.BasicTimeResponseStrategy;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.TimeCalculation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
+import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 
 public class MainApp {
     private static ConsolaView view;
     // private static EmergencySistem sistem;
     private static TimeCalculation timeCalculation;
-
+    private static EmergencySistem sistem;
     public static void main(String[] args) {
         view = new ConsolaView();
         timeCalculation = new BasicTimeResponseStrategy();
+        sistem = EmergencySistem.getInstance();
         int mainOption;
         do {
             view.showMenu();
@@ -49,6 +51,6 @@ public class MainApp {
         double timeResponse = timeCalculation.CalculateTime(type, location);
         long tiempoEstimado = Math.round(timeResponse);
         Emergency newEmergency = new Emergency(type, level, location, tiempoEstimado);
-        
+        sistem.registerEmergency(newEmergency);
     }
 }

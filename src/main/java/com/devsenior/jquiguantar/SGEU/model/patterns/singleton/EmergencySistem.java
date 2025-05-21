@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
-
+import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -17,11 +17,13 @@ public class EmergencySistem {
 
     private List<PredefinedLocation> referencePoints;
     private List<OperationalBase> operationalBases;
+    private List<Emergency> emergencies;
     private static final String CONFIG_FILE = "/bases.json";
 
     private EmergencySistem() {
         this.referencePoints = new ArrayList<>();
         this.operationalBases = new ArrayList<>();
+        this.emergencies = new ArrayList<>();
         loadConfig();
     }
 
@@ -96,4 +98,24 @@ public class EmergencySistem {
     public List<OperationalBase> getOperationalBases() {
         return operationalBases;
     }
+
+    public void registerEmergency(Emergency emergency){
+        if (emergency != null) {
+            emergencies.add(emergency);
+        }
+        System.out.println("Emergencia registrada exitosamente.");
+        
+    }
+
+    public List<Emergency> getEmergencies(){
+        return new ArrayList<>(emergencies);
+    }
+    public List<Emergency> getActiveEmergencies(){
+        return emergencies.stream()
+            .filter(emergency -> !emergency.isAtendida())
+            .toList();
+    }
+
+
+
 }
