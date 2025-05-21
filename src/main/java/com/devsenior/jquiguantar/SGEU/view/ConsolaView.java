@@ -12,7 +12,7 @@ import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Utilities;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
-
+import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 
 public class ConsolaView {
     private Scanner scanner;
@@ -184,4 +184,36 @@ public class ConsolaView {
         scanner.nextLine();
         Utilities.cleanConsole();
     }
+    public void displayActiveEmergencies(List<Emergency> emergencies){
+        // Utilities.cleanConsole();
+        Utilities.printTitle("Emergencias Activas");
+        if(emergencies.isEmpty()){
+            showMessaje("No hay emergencias activas en este momento.");
+        }
+
+        showMessaje("\nTotal de emergencias activas: " + emergencies.size() + "\n");
+        for(int i = 0; i < emergencies.size(); i++){
+            Emergency emergency = emergencies.get(i);
+            showMessaje("Emergencia #" + (i + 1) + ":");
+            showMessaje("Tipo: " + emergency.getTipo());
+            showMessaje("Nivel de Gravedad: " + emergency.getNivelGravedad());
+            
+            // Buscar el nombre del lugar de la emergencia
+            String locationName = sistem.getReferencePoints().stream()
+                .filter(point -> point.getLocation().getLatitude() == emergency.getUbicacion().getLatitude() 
+                    && point.getLocation().getLongitude() == emergency.getUbicacion().getLongitud())
+                .map(PredefinedLocation::getNombre)
+                .findFirst()
+                .orElse("Ubicación no registrada");
+            
+            showMessaje("Ubicacion: " + locationName);
+            showMessaje("Tiempo Estimado: " + String.format("%.2f", emergency.getTiempoEstimado()) + " minutos");
+            showMessaje("--------------------------------");
+        }
+        showMessaje("Presione Enter para continuar...");
+        scanner.nextLine();
+        Utilities.cleanConsole();
+
+    }
+
 }

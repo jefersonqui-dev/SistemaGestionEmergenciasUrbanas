@@ -83,7 +83,6 @@ public class EmergencySistem {
             System.err.println("Error al cargar los puntos de referencia: " + e.getMessage());
         }
     }
-
     public static EmergencySistem getInstance() {
         if (instance == null) {
             instance = new EmergencySistem();
@@ -103,6 +102,7 @@ public class EmergencySistem {
         if (emergency != null) {
             emergencies.add(emergency);
         }
+
         System.out.println("Emergencia registrada exitosamente.");
         
     }
@@ -115,7 +115,8 @@ public class EmergencySistem {
             .filter(emergency -> !emergency.isAtendida())
             .toList();
     }
-
-
-
+    
+    
+    
+    
 }
