@@ -9,6 +9,7 @@ import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.BasicTimeResponseS
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.TimeCalculation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
+import java.util.List;
 
 public class MainApp {
     private static ConsolaView view;
@@ -28,6 +29,7 @@ public class MainApp {
                     registerNewEmergency();
                     break;
                 case 2:
+                    showEmergenciesActive();
                     break;
                 case 3:
                     break;
@@ -48,9 +50,11 @@ public class MainApp {
         EmergencyType type = view.requestEmergencyType();
         Location location = view.requestLocation();
         SeverityLevel level = view.requestSeverityLevel();
-        double timeResponse = timeCalculation.CalculateTime(type, location);
-        long tiempoEstimado = Math.round(timeResponse);
-        Emergency newEmergency = new Emergency(type, level, location, tiempoEstimado);
+        Emergency newEmergency = new Emergency(type, level, location, timeCalculation.CalculateTime(type, location));
         sistem.registerEmergency(newEmergency);
+    }
+    private static void showEmergenciesActive() {
+        List<Emergency> activeEmergencies = sistem.getActiveEmergencies();
+        view.displayActiveEmergencies(activeEmergencies);
     }
 }

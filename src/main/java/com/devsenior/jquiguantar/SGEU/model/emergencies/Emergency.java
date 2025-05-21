@@ -7,10 +7,10 @@ public class Emergency {
     private EmergencyType tipo;
     private SeverityLevel nivelGravedad;
     private Location ubicacion;
-    private long tiempoEstimado;
+    private double tiempoEstimado;
     private boolean atendida;
 
-    public Emergency(EmergencyType tipo, SeverityLevel nivelGravedad, Location ubicacion, long tiempoEstimado) {
+    public Emergency(EmergencyType tipo, SeverityLevel nivelGravedad, Location ubicacion, double tiempoEstimado) {
         this.tipo = tipo;
         this.nivelGravedad = nivelGravedad;
         this.ubicacion = ubicacion;
@@ -31,7 +31,7 @@ public class Emergency {
         return ubicacion;
     }
 
-    public long getTiempoEstimado() {
+    public double getTiempoEstimado() {
         return tiempoEstimado;
     }
 
