@@ -13,9 +13,9 @@ import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Utilities;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
+import com.devsenior.jquiguantar.SGEU.model.resources.Resource;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
-import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
 import com.devsenior.jquiguantar.SGEU.model.config.OperationalBase;
 
 public class ConsolaView {
@@ -224,7 +224,7 @@ public class ConsolaView {
         showMessaje("  -------------------------------------------------------------------------------------------------------");
         System.out.println("                                         Estado Actual de Recursos");
         showMessaje("  -------------------------------------------------------------------------------------------------------");
-        showMessaje("  ID   | Tipo                 | Cantidad | Estado     | Combustible | Base");
+        showMessaje("  ID   | Tipo                 | Estado                | Progreso    | Combustible | Base");
         showMessaje("  -------------------------------------------------------------------------------------------------------");
 
         if (resources.isEmpty()) {
@@ -244,11 +244,14 @@ public class ConsolaView {
                                 baseInfo = base.getName();
                             }
 
-                            showMessaje(String.format("  %-4d | %-20s | %-8d | %-10s | %-11s | %s",
+                            String progressInfo = resource.isInProgress() ? 
+                                String.format("%.1f%%", resource.getProgress()) : "-";
+
+                            showMessaje(String.format("  %-4d | %-20s | %-20s | %-10s | %-11s | %s",
                                 resource.getId(),
                                 resource.getType(),
-                                1, // Cantidad individual
-                                resource.isAvailable() ? "Disponible" : "En uso",
+                                resource.getStatus(),
+                                progressInfo,
                                 String.format("%.1f%%", resource.getFuel()),
                                 baseInfo));
                         }
@@ -256,10 +259,21 @@ public class ConsolaView {
         }
 
         showMessaje("  ------------------------------------------------------------------------------------------------------");
-        // showMessaje("Total de recursos: " + resources.size());
         showMessaje("Presione Enter para continuar...");
         scanner.nextLine();
         Utilities.cleanConsole();
+    }
+
+    public void showMessage(String message) {
+        System.out.println(message);
+    }
+
+    public void showAssignedResources(List<Resource> resources) {
+        System.out.println("\nRecursos asignados:");
+        for (Resource resource : resources) {
+            System.out.println("- " + resource.getType() + " (ID: " + resource.getId() + ")");
+        }
+        System.out.println();
     }
 
 }

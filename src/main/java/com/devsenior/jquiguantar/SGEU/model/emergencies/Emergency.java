@@ -15,8 +15,7 @@ public class Emergency {
         this.nivelGravedad = nivelGravedad;
         this.ubicacion = ubicacion;
         this.tiempoEstimado = tiempoEstimado;
-        // this.atendida = atendida;
-
+        this.atendida = false;
     }
 
     public EmergencyType getTipo() {
@@ -37,6 +36,10 @@ public class Emergency {
 
     public boolean isAtendida() {
         return atendida;
+    }
+
+    public void setAtendida(boolean atendida) {
+        this.atendida = atendida;
     }
 
     @Override
