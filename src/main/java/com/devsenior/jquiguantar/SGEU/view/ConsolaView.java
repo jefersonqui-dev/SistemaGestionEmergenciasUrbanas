@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
-import java.util.Map;
+// import java.util.Map;
 
 import com.devsenior.jquiguantar.SGEU.model.config.PredefinedLocation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
