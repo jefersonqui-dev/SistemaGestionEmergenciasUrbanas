@@ -4,6 +4,8 @@ package com.devsenior.jquiguantar.SGEU.view;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+import java.util.Map;
 
 import com.devsenior.jquiguantar.SGEU.model.config.PredefinedLocation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
@@ -13,6 +15,8 @@ import com.devsenior.jquiguantar.SGEU.model.util.Utilities;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
+import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
+import com.devsenior.jquiguantar.SGEU.model.config.OperationalBase;
 
 public class ConsolaView {
     private Scanner scanner;
@@ -214,6 +218,48 @@ public class ConsolaView {
         scanner.nextLine();
         Utilities.cleanConsole();
 
+    }
+    public void showResources(List<Resource> resources) {
+        Utilities.cleanConsole();
+        showMessaje("  -------------------------------------------------------------------------------------------------------");
+        System.out.println("                                         Estado Actual de Recursos");
+        showMessaje("  -------------------------------------------------------------------------------------------------------");
+        showMessaje("  ID   | Tipo                 | Cantidad | Estado     | Combustible | Base");
+        showMessaje("  -------------------------------------------------------------------------------------------------------");
+
+        if (resources.isEmpty()) {
+            showMessaje("  No hay recursos disponibles en el sistema.");
+        } else {
+            resources.stream()
+                    .collect(Collectors.groupingBy(Resource::getType))
+                    .forEach((type, resourceList) -> {
+                        for (Resource resource : resourceList) {
+                            String baseInfo = "";
+                            OperationalBase base = sistem.getOperationalBases().stream()
+                                    .filter(b -> b.getId().equals(resource.getBaseOrigin()))
+                                    .findFirst()
+                                    .orElse(null);
+                            
+                            if (base != null) {
+                                baseInfo = base.getName();
+                            }
+
+                            showMessaje(String.format("  %-4d | %-20s | %-8d | %-10s | %-11s | %s",
+                                resource.getId(),
+                                resource.getType(),
+                                1, // Cantidad individual
+                                resource.isAvailable() ? "Disponible" : "En uso",
+                                String.format("%.1f%%", resource.getFuel()),
+                                baseInfo));
+                        }
+                    });
+        }
+
+        showMessaje("  ------------------------------------------------------------------------------------------------------");
+        // showMessaje("Total de recursos: " + resources.size());
+        showMessaje("Presione Enter para continuar...");
+        scanner.nextLine();
+        Utilities.cleanConsole();
     }
 
 }
