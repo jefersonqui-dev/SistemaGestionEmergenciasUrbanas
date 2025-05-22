@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
+import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -18,12 +19,14 @@ public class EmergencySistem {
     private List<PredefinedLocation> referencePoints;
     private List<OperationalBase> operationalBases;
     private List<Emergency> emergencies;
+    private List<Resource> resources;
     private static final String CONFIG_FILE = "/bases.json";
 
     private EmergencySistem() {
         this.referencePoints = new ArrayList<>();
         this.operationalBases = new ArrayList<>();
         this.emergencies = new ArrayList<>();
+        this.resources = new ArrayList<>();
         loadConfig();
     }
 
@@ -41,25 +44,21 @@ public class EmergencySistem {
 
             if (PointsNode != null) {
                 for (JsonNode pointNode : PointsNode) {
-                    // LLenar los datos del punto desde el json
                     PredefinedLocation point = new PredefinedLocation();
                     point.setId(pointNode.get("id").asText());
                     point.setNombre(pointNode.get("nombre").asText());
                     point.setDescription(pointNode.get("descripcion").asText());
     
-                    // Creamos y configuramos la Ubicacion
                     JsonNode locationNode = pointNode.get("ubicacion");
                     LocationSettings location = new LocationSettings();
                     location.setLatitude(locationNode.get("latitud").asDouble());
                     location.setLongitude(locationNode.get("longitud").asDouble());
                     
-                    // asignamos la ubicacion al punto
                     point.setLocation(location);
                     referencePoints.add(point);
                 }
             }
 
-        //cargar bases operativas
             JsonNode basesNode = rootNode.get("basesOperativas");
             if (basesNode != null) {
                 for (JsonNode baseNode : basesNode) {
@@ -75,12 +74,27 @@ public class EmergencySistem {
                     );
                     base.setLocation(baseLocation);
                     operationalBases.add(base);
+
+                    // Cargar recursos de la base
+                    JsonNode recursosNode = baseNode.get("recursosIniciales");
+                    if (recursosNode != null) {
+                        for (JsonNode recursoNode : recursosNode) {
+                            int id = recursoNode.get("id").asInt();
+                            String type = recursoNode.get("tipo").asText();
+                            double consumptionByDistance = recursoNode.has("consumoPorDistancia") ?
+                                recursoNode.get("consumoPorDistancia").asDouble() : 0.0;
+                            
+                            Resource resource = new Resource(id, type, base.getId(), consumptionByDistance);
+                            resources.add(resource);
+                        }
+                    }
                 }
             }
 
             inputStream.close();
         } catch (IOException e) {
-            System.err.println("Error al cargar los puntos de referencia: " + e.getMessage());
+            System.err.println("Error al cargar la configuración: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     public static EmergencySistem getInstance() {
@@ -88,6 +102,15 @@ public class EmergencySistem {
             instance = new EmergencySistem();
         }
         return instance;
+    }
+    public List<Resource> getAllResources(){
+        return new ArrayList<>(resources);
+    }
+    public Resource getResourceById(int id){
+        return resources.stream()
+            .filter(r -> r.getId() == id)
+            .findFirst()
+            .orElse(null);
     }
 
     public List<PredefinedLocation> getReferencePoints() {

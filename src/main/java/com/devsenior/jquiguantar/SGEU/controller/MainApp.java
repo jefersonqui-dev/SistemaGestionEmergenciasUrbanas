@@ -10,6 +10,7 @@ import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.TimeCalculation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 import java.util.List;
+import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
 
 public class MainApp {
     private static ConsolaView view;
@@ -32,6 +33,7 @@ public class MainApp {
                     showEmergenciesActive();
                     break;
                 case 3:
+                    showResourcesStatus();
                     break;
                 case 4:
                     break;
@@ -56,5 +58,9 @@ public class MainApp {
     private static void showEmergenciesActive() {
         List<Emergency> activeEmergencies = sistem.getActiveEmergencies();
         view.displayActiveEmergencies(activeEmergencies);
+    }
+    private static void showResourcesStatus() {
+        List<Resource> resources = sistem.getAllResources();
+        view.showResources(resources);
     }
 }

@@ -81,11 +81,7 @@
           "id": 502,
           "consumoPorDistancia": 0.4
         },
-        {
-          "tipo": "Patrulla Policial",
-          "id": 503,
-          "consumoPorDistancia": 0.4
-        },
+
         {
           "tipo": "Oficial de Policía",
           "id": 601
