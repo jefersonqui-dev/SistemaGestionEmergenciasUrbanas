@@ -14,7 +14,6 @@ import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
 
 public class MainApp {
     private static ConsolaView view;
-    // private static EmergencySistem sistem;
     private static TimeCalculation timeCalculation;
     private static EmergencySistem sistem;
     public static void main(String[] args) {
