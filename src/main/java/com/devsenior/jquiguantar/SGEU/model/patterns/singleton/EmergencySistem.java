@@ -7,7 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
-import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
+import com.devsenior.jquiguantar.SGEU.model.resources.Resource;
+import com.devsenior.jquiguantar.SGEU.model.patterns.observer.EmergencyObserver;
+import com.devsenior.jquiguantar.SGEU.model.services.EmergencyService;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -21,12 +24,14 @@ public class EmergencySistem {
     private List<Emergency> emergencies;
     private List<Resource> resources;
     private static final String CONFIG_FILE = "/bases.json";
+    private List<EmergencyObserver> observers;
 
     private EmergencySistem() {
         this.referencePoints = new ArrayList<>();
         this.operationalBases = new ArrayList<>();
         this.emergencies = new ArrayList<>();
         this.resources = new ArrayList<>();
+        this.observers = new ArrayList<>();
         loadConfig();
     }
 
@@ -137,6 +142,29 @@ public class EmergencySistem {
         return emergencies.stream()
             .filter(emergency -> !emergency.isAtendida())
             .toList();
+    }
+
+    public void notifyServices(Emergency emergency) {
+        for (EmergencyObserver observer : observers) {
+            observer.notifyNewEmergency(emergency);
+        }
+    }
+
+    public List<Resource> getAssignedResources(Emergency emergency) {
+        List<Resource> assignedResources = new ArrayList<>();
+        for (EmergencyObserver observer : observers) {
+            if (observer instanceof EmergencyService) {
+                EmergencyService service = (EmergencyService) observer;
+                if (service.canAttend(emergency)) {
+                    assignedResources.addAll(service.addResources(emergency));
+                }
+            }
+        }
+        return assignedResources;
+    }
+
+    public void addObserver(EmergencyObserver observer) {
+        observers.add(observer);
     }
     
     
