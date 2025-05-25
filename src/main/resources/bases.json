@@ -12,12 +12,12 @@
         {
           "tipo": "Camión de Bomberos",
           "id": 101,
-          "consumoPorDistancia": 0.5
+          "consumoPorDistancia": 14.5
         },
         {
           "tipo": "Camión de Bomberos",
           "id": 102,
-          "consumoPorDistancia": 0.5
+          "consumoPorDistancia": 2.5
         },
         {
           "tipo": "Personal Bombero",

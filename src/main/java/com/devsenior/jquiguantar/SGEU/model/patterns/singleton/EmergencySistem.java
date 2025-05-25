@@ -25,6 +25,8 @@ public class EmergencySistem {
     private List<OperationalBase> operationalBases;
     private List<Emergency> emergencies;
     private List<Resource> resources;
+    private List<Resource> recursosEnRecarga;
+    private List<Resource> recursosConCombustibleBajo;
     private static final String CONFIG_FILE = "/bases.json";
 
     private EmergencySistem() {
@@ -32,6 +34,8 @@ public class EmergencySistem {
         this.operationalBases = new ArrayList<>();
         this.emergencies = new ArrayList<>();
         this.resources = new ArrayList<>();
+        this.recursosEnRecarga = new ArrayList<>();
+        this.recursosConCombustibleBajo = new ArrayList<>();
         loadConfig();
     }
 
@@ -140,10 +144,17 @@ public class EmergencySistem {
             .filter(emergency -> !emergency.isAtendida())
             .toList();
     }
-    public List<Emergency> getEmergencyOrdered(){
+    public List<Emergency> getEmergencyOrdered() {
         return emergencies.stream()
-            .filter(emergency -> !emergency.isAtendida())
-            .sorted(Comparator.comparing(Emergency::getNivelGravedad).reversed())
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.PENDIENTE)
+            .sorted((e1, e2) -> {
+                // Primero por nivel de gravedad
+                int compareGravedad = e2.getNivelGravedad().ordinal() - e1.getNivelGravedad().ordinal();
+                if (compareGravedad != 0) return compareGravedad;
+                
+                // Luego por tiempo de espera
+                return Double.compare(e1.getTiempoEstimado(), e2.getTiempoEstimado());
+            })
             .collect(Collectors.toList());
     }
     public List<Resource> getAvailableResourcesForEmergency(Emergency emergency){
@@ -214,24 +225,25 @@ public class EmergencySistem {
             .limit(cantidad)
             .collect(Collectors.toList());
     }
-    public boolean assignResourcesToEmergency(Emergency emergency, List<Resource> resourcesToAssign){
-        if(resourcesToAssign == null || resourcesToAssign.isEmpty()) {
+    public boolean assignResourcesToEmergency(Emergency emergency, List<Resource> resources) {
+        if (emergency == null || resources == null || resources.isEmpty()) {
             return false;
         }
 
         // Verificar que todos los recursos estén disponibles
-        boolean todosDisponibles = resourcesToAssign.stream()
-            .allMatch(Resource::isAvailable);
-            
-        if (!todosDisponibles) {
+        if (!resources.stream().allMatch(Resource::isAvailable)) {
             return false;
         }
 
-        // Asignar los recursos
-        for (Resource r : resourcesToAssign) {
-            r.setAvailable(false);
+        // Asignar recursos a la emergencia
+        for (Resource resource : resources) {
+            resource.setAvailable(false);
         }
-        emergency.setAtendida(true);
+        emergency.asignarRecursos(resources);
+
+        // Cambiar el estado de la emergencia a EN_ATENCION
+        emergency.setEstado(Emergency.EstadoEmergencia.EN_ATENCION);
+        
         return true;
     }
     
@@ -295,5 +307,201 @@ public class EmergencySistem {
         return getEmergencyOrdered().stream()
             .filter(emergency -> hasAvailableResourcesForEmergency(emergency) && hasSuggestedResourcesForEmergency(emergency))
             .collect(Collectors.toList());
+    }
+
+    public void actualizarEstadoEmergencias(double tiempoTranscurrido) {
+        // Primero actualizamos el estado de recarga
+        List<Resource> recursosFinalizados = new ArrayList<>();
+        for (Resource recurso : new ArrayList<>(recursosEnRecarga)) {
+            recurso.actualizarRecarga(tiempoTranscurrido);
+            if (!recurso.isEnRecarga()) {
+                recursosFinalizados.add(recurso);
+            }
+        }
+        // Eliminar recursos finalizados fuera del bucle
+        recursosEnRecarga.removeAll(recursosFinalizados);
+
+        // Luego actualizamos las emergencias
+        for (Emergency emergency : emergencies) {
+            if (emergency.getEstado() == Emergency.EstadoEmergencia.EN_ATENCION) {
+                // Verificar si algún recurso necesita recarga
+                boolean necesitaPausa = false;
+                for (Resource recurso : emergency.getRecursosAsignados()) {
+                    if (recurso.necesitaRecarga() && !recurso.isEnRecarga()) {
+                        necesitaPausa = true;
+                        if (!recursosConCombustibleBajo.contains(recurso)) {
+                            recursosConCombustibleBajo.add(recurso);
+                        }
+                    }
+                }
+
+                if (!necesitaPausa) {
+                    // Actualizar tiempo restante
+                    emergency.actualizarTiempoRestante(tiempoTranscurrido);
+                    
+                    // Calcular distancia recorrida en este intervalo
+                    double distanciaIntervalo = 0.0;
+                    if (emergency.getTiempoRestante() > 0) {
+                        double distanciaTotal = calcularDistanciaTotal(emergency);
+                        double tiempoTotal = emergency.getTiempoEstimado();
+                        distanciaIntervalo = (distanciaTotal / tiempoTotal) * tiempoTranscurrido;
+                    }
+                    
+                    // Actualizar combustible de los recursos
+                    for (Resource recurso : emergency.getRecursosAsignados()) {
+                        if (!recurso.isEnRecarga()) {
+                            recurso.consumirCombustible(tiempoTranscurrido, distanciaIntervalo);
+                            
+                            // Verificar si el combustible está bajo después de consumir
+                            if (recurso.necesitaRecarga() && !recursosConCombustibleBajo.contains(recurso)) {
+                                recursosConCombustibleBajo.add(recurso);
+                            }
+                        }
+                    }
+                }
+
+                // Si la emergencia está atendida, liberar recursos
+                if (emergency.isAtendida()) {
+                    emergency.liberarRecursos();
+                }
+            }
+        }
+    }
+
+    private double calcularDistanciaTotal(Emergency emergency) {
+        double distanciaTotal = 0.0;
+        
+        // Calcular distancia desde la base de cada recurso hasta la ubicación de la emergencia
+        for (Resource recurso : emergency.getRecursosAsignados()) {
+            OperationalBase base = operationalBases.stream()
+                .filter(b -> b.getId().equals(recurso.getBaseOrigin()))
+                .findFirst()
+                .orElse(null);
+                
+            if (base != null) {
+                // Calcular distancia desde la base hasta la emergencia
+                double distancia = calcularDistancia(
+                    base.getLocation().getLatitude(),
+                    base.getLocation().getLongitud(),
+                    emergency.getUbicacion().getLatitude(),
+                    emergency.getUbicacion().getLongitud()
+                );
+                distanciaTotal += distancia;
+            }
+        }
+        
+        return distanciaTotal;
+    }
+
+    private double calcularDistancia(double lat1, double lon1, double lat2, double lon2) {
+        // Fórmula de Haversine para calcular distancia entre dos puntos geográficos
+        final int R = 6371; // Radio de la Tierra en kilómetros
+
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+                
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        return R * c; // Distancia en kilómetros
+    }
+
+    public List<Resource> getRecursosNecesitanRecarga() {
+        return resources.stream()
+            .filter(r -> r.necesitaRecarga() && !r.isEnRecarga())
+            .collect(Collectors.toList());
+    }
+
+    public List<Resource> getRecursosEnRecarga() {
+        return new ArrayList<>(recursosEnRecarga);
+    }
+
+    public boolean iniciarRecargaRecurso(Resource recurso) {
+        if (recurso != null && !recurso.isEnRecarga() && recurso.necesitaRecarga()) {
+            recurso.iniciarRecarga();
+            recursosEnRecarga.add(recurso);
+            recursosConCombustibleBajo.remove(recurso);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean iniciarRecargaRecursos(List<Resource> recursos) {
+        if (recursos == null || recursos.isEmpty()) {
+            return false;
+        }
+
+        boolean algunoIniciado = false;
+        for (Resource recurso : recursos) {
+            if (iniciarRecargaRecurso(recurso)) {
+                algunoIniciado = true;
+            }
+        }
+        return algunoIniciado;
+    }
+
+    public String getEstadoRecargaRecurso(Resource recurso) {
+        if (recurso == null) {
+            return "Recurso no válido";
+        }
+        return recurso.getEstadoRecarga();
+    }
+
+    public List<Emergency> getEmergenciasEnAtencion() {
+        return emergencies.stream()
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.EN_ATENCION)
+            .collect(Collectors.toList());
+    }
+
+    public List<Emergency> getEmergenciasPendientes() {
+        return emergencies.stream()
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.PENDIENTE)
+            .collect(Collectors.toList());
+    }
+
+    public List<Resource> getRecursosConCombustibleBajo() {
+        return new ArrayList<>(recursosConCombustibleBajo);
+    }
+
+    public void limpiarNotificacionesCombustibleBajo() {
+        recursosConCombustibleBajo.clear();
+    }
+
+    public boolean hayRecursosConCombustibleBajo() {
+        return !recursosConCombustibleBajo.isEmpty();
+    }
+
+    public boolean hayRecursosEnRecarga() {
+        return !recursosEnRecarga.isEmpty();
+    }
+
+    public Emergency seleccionarEmergenciaPorPrioridad(List<Emergency> orderedEmergencies) {
+        return orderedEmergencies.isEmpty() ? null : orderedEmergencies.get(0);
+    }
+
+    public Emergency seleccionarEmergenciaManual(List<Emergency> orderedEmergencies, int indice) {
+        if (indice < 1 || indice > orderedEmergencies.size()) {
+            return null;
+        }
+        return orderedEmergencies.get(indice - 1);
+    }
+
+    public boolean procesarAsignacionRecursos(Emergency emergency, List<Resource> toAssign) {
+        if (emergency == null || toAssign == null || toAssign.isEmpty()) {
+            return false;
+        }
+        return assignResourcesToEmergency(emergency, toAssign);
+    }
+
+    public List<Resource> obtenerRecursosParaAsignacion(Emergency emergency, boolean usarSugeridos) {
+        if (emergency == null) {
+            return new ArrayList<>();
+        }
+        return usarSugeridos ? 
+            suggestResourcesForEmergency(emergency) : 
+            getAvailableResourcesForEmergency(emergency);
     }
 }

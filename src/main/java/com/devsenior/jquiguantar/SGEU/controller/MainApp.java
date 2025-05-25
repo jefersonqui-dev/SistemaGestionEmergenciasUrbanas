@@ -10,16 +10,25 @@ import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.Scanner;
 
 public class MainApp {
     private static ConsolaView view;
     private static TimeCalculation timeCalculation;
     private static EmergencySistem sistem;
+    private static Timer timer;
+    private static final long UPDATE_INTERVAL = 1000; // Actualizar cada segundo
+    private static Scanner scanner;
 
     public static void main(String[] args) {
         view = new ConsolaView();
         timeCalculation = new BasicTimeResponseStrategy();
         sistem = EmergencySistem.getInstance();
+        scanner = new Scanner(System.in);
+        iniciarTemporizador();
+        
         int mainOption;
         do {
             view.showMenu();
@@ -40,11 +49,29 @@ public class MainApp {
                 case 5:
                     break;
                 case 6:
+                    detenerTemporizador();
                     break;
                 default:
                     break;
             }
+            // if (scanner.hasNextLine()) scanner.nextLine();
         } while (mainOption != 6);
+    }
+
+    private static void iniciarTemporizador() {
+        timer = new Timer(true);
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                sistem.actualizarEstadoEmergencias(1.0/60.0); // Actualizar cada segundo (1/60 de minuto)
+            }
+        }, 0, UPDATE_INTERVAL);
+    }
+
+    private static void detenerTemporizador() {
+        if (timer != null) {
+            timer.cancel();
+        }
     }
 
     private static void registerNewEmergency() {
@@ -66,56 +93,58 @@ public class MainApp {
     }
 
     private static void handleEmergencies() {
-        if (!sistem.hasActiveEmergencies()) {
-            view.showNoActiveEmergencies();
-            return;
-        }
+        while (true) {
+            if (!sistem.hasActiveEmergencies()) {
+                view.showNoActiveEmergencies();
+                return;
+            }
 
-        // Mostrar emergencias ordenadas por prioridad
-        List<Emergency> orderedEmergencies = sistem.getEmergencyOrdered();
-        if (orderedEmergencies.isEmpty()) {
-            view.showMessaje("No hay emergencias activas para atender.");
-            return;
-        }
+            List<Emergency> orderedEmergencies = sistem.getEmergencyOrdered();
+            if (orderedEmergencies.isEmpty()) {
+                view.showMessaje("No hay emergencias activas para atender.");
+                return;
+            }
 
-        view.displayEmergencySummary(orderedEmergencies);
-        view.waitForEnter("Presione Enter para continuar...");
+            view.displayEmergencySummary(orderedEmergencies);
+            view.mostrarOpcionesSeleccionEmergencia();
+            
+            int opcionSeleccion = view.solicitarOpcionSeleccionEmergencia();
+            Emergency selectedEmergency;
 
-        // Obtener la emergencia de mayor prioridad
-        Emergency highestPriority = orderedEmergencies.get(0);
-        if (highestPriority == null) {
-            view.showMessaje("No hay emergencias activas para atender.");
-            return;
-        }
+            switch (opcionSeleccion) {
+                case 1:
+                    selectedEmergency = sistem.seleccionarEmergenciaPorPrioridad(orderedEmergencies);
+                    break;
+                case 2:
+                    int numEmergencia = view.solicitarEmergenciaManual(orderedEmergencies);
+                    selectedEmergency = sistem.seleccionarEmergenciaManual(orderedEmergencies, numEmergencia);
+                    if (selectedEmergency == null) {
+                        view.showMessaje("Número de emergencia no válido.");
+                        view.waitForEnter("Presione Enter para continuar...");
+                        continue;
+                    }
+                    break;
+                case 3:
+                    return;
+                default:
+                    view.showMessaje("Opción no válida");
+                    view.waitForEnter("Presione Enter para continuar...");
+                    continue;
+            }
 
-        // Mostrar resumen de la emergencia
-        view.showEmergencySummary(highestPriority);
+            List<Resource> available = sistem.getAvailableResourcesForEmergency(selectedEmergency);
+            List<Resource> suggested = sistem.suggestResourcesForEmergency(selectedEmergency);
+            
+            if (available.isEmpty()) {
+                view.mostrarMensajeNoHayRecursos();
+                continue;
+            }
 
-        // Obtener y mostrar recursos disponibles y sugeridos
-        List<Resource> available = sistem.getAvailableResourcesForEmergency(highestPriority);
-        List<Resource> suggested = sistem.suggestResourcesForEmergency(highestPriority);
-        
-        if (available.isEmpty()) {
-            view.showMessaje("No hay recursos disponibles para atender esta emergencia.");
-            return;
-        }
-
-        view.showAvailableAndSuggestedResources(available, suggested);
-
-        // Solicitar confirmación para asignar recursos sugeridos
-        boolean confirm = view.requestConfirmation("¿Desea asignar los recursos sugeridos? (S/N): ");
-        List<Resource> toAssign;
-        if (confirm) {
-            toAssign = suggested;
-        } else {
-            toAssign = view.requestResourceSelection(available);
-        }
-
-        // Asignar recursos y mostrar resumen
-        if (sistem.assignResourcesToEmergency(highestPriority, toAssign)) {
-            view.showAssignmentSummary(highestPriority, toAssign);
-        } else {
-            view.showMessaje("No se pudieron asignar los recursos a la emergencia.");
+            view.mostrarProcesoAsignacionRecursos(selectedEmergency, available, suggested);
+            List<Resource> toAssign = view.solicitarRecursosParaAsignacion(available, suggested);
+            
+            boolean exito = sistem.procesarAsignacionRecursos(selectedEmergency, toAssign);
+            view.mostrarResultadoAsignacion(selectedEmergency, toAssign, exito);
         }
     }
 }
