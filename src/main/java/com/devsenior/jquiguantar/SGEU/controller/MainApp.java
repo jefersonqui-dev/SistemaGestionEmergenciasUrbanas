@@ -47,6 +47,7 @@ public class MainApp {
                     handleEmergencies();
                     break;
                 case 5:
+                    showStatistics();
                     break;
                 case 6:
                     detenerTemporizador();
@@ -146,5 +147,9 @@ public class MainApp {
             boolean exito = sistem.procesarAsignacionRecursos(selectedEmergency, toAssign);
             view.mostrarResultadoAsignacion(selectedEmergency, toAssign, exito);
         }
+    }
+
+    private static void showStatistics() {
+        // view.mostrarEstadisticas();
     }
 }
