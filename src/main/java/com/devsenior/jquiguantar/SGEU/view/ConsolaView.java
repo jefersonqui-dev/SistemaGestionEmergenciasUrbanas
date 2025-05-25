@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.Map;
+import java.util.ArrayList;
 
 import com.devsenior.jquiguantar.SGEU.model.config.PredefinedLocation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
@@ -260,6 +261,207 @@ public class ConsolaView {
         showMessaje("Presione Enter para continuar...");
         scanner.nextLine();
         Utilities.cleanConsole();
+    }
+
+    public void showEmergenciesOrdered(List<Emergency> emergencies) {
+        Utilities.printTitle("Emergencias activas ordenadas por prioridad");
+        for (int i = 0; i < emergencies.size(); i++) {
+            Emergency e = emergencies.get(i);
+            System.out.printf("%d. Tipo: %s | Gravedad: %s | Ubicación: %s\n",
+                i + 1, e.getTipo(), e.getNivelGravedad(), obtenerNombreUbicacion(e));
+        }
+    }
+
+    public void waitForEnter(String message) {
+        System.out.println(message);
+        scanner.nextLine();
+    }
+
+    public void showNoActiveEmergencies() {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Gestión de Emergencias");
+        showMessaje("No hay emergencias activas para atender.");
+        waitForEnter("Presione Enter para continuar...");
+    }
+
+    public void showNoAvailableResources() {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Gestión de Emergencias");
+        showMessaje("No hay recursos disponibles para atender esta emergencia.");
+        waitForEnter("Presione Enter para continuar...");
+    }
+
+    public void showNoSuggestedResources() {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Gestión de Emergencias");
+        showMessaje("No hay recursos sugeridos disponibles para este tipo de emergencia.");
+        waitForEnter("Presione Enter para continuar...");
+    }
+
+    public void displayEmergenciesWithResources(List<Emergency> emergencies) {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Emergencias con Recursos Disponibles");
+        
+        if (emergencies.isEmpty()) {
+            showMessaje("No hay emergencias que puedan ser atendidas con los recursos disponibles.");
+        } else {
+            for (int i = 0; i < emergencies.size(); i++) {
+                Emergency e = emergencies.get(i);
+                showMessaje(String.format("%d. Tipo: %s | Gravedad: %s | Ubicación: %s",
+                    i + 1, e.getTipo(), e.getNivelGravedad(), obtenerNombreUbicacion(e)));
+            }
+        }
+    }
+
+    public int requestEmergencyToAttend(int maxOptions) {
+        return requestInteger("Seleccione el número de la emergencia a atender (1-" + maxOptions + "): ");
+    }
+
+    public void displayEmergencySummary(List<Emergency> emergencies) {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Emergencias por Prioridad");
+        
+        if(emergencies.isEmpty()) {
+            showMessaje("No hay emergencias activas en este momento.");
+            return;
+        }
+
+        showMessaje("\nEmergencias Activas (Ordenadas por Prioridad):");
+        showMessaje("----------------------------------------");
+        for(int i = 0; i < emergencies.size(); i++) {
+            Emergency emergency = emergencies.get(i);
+            showMessaje(String.format("%d. %s - %s - %s",
+                i + 1,
+                emergency.getTipo(),
+                emergency.getNivelGravedad(),
+                obtenerNombreUbicacion(emergency)));
+        }
+        showMessaje("----------------------------------------");
+    }
+
+    public void showEmergencySummary(Emergency emergency) {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Detalles de la Emergencia");
+        showMessaje("Tipo: " + emergency.getTipo());
+        showMessaje("Nivel de Gravedad: " + emergency.getNivelGravedad());
+        showMessaje("Ubicación: " + obtenerNombreUbicacion(emergency));
+        showMessaje("Tiempo Estimado: " + String.format("%.2f", emergency.getTiempoEstimado()) + " minutos");
+        showMessaje("----------------------------------------");
+    }
+
+    public void showAvailableAndSuggestedResources(List<Resource> available, List<Resource> suggested) {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Recursos Disponibles y Sugeridos");
+        
+        if (available.isEmpty()) {
+            showMessaje("No hay recursos disponibles para este tipo de emergencia.");
+            return;
+        }
+
+        showMessaje("\nRecursos Disponibles para " + getEmergencyTypeDescription(available.get(0).getType()) + ":");
+        showMessaje("----------------------------------------");
+        
+        Map<String, List<Resource>> availableByType = available.stream()
+            .collect(Collectors.groupingBy(Resource::getType));
+        
+        availableByType.forEach((type, resources) -> {
+            showMessaje("\n" + type + ":");
+            resources.forEach(r -> {
+                String baseInfo = sistem.getOperationalBases().stream()
+                    .filter(b -> b.getId().equals(r.getBaseOrigin()))
+                    .map(OperationalBase::getName)
+                    .findFirst()
+                    .orElse("Base no encontrada");
+                showMessaje(String.format("- ID: %d | Base: %s | Combustible: %.1f%%", 
+                    r.getId(), baseInfo, r.getFuel()));
+            });
+        });
+
+        if (!suggested.isEmpty()) {
+            showMessaje("\nRecursos Sugeridos para esta Emergencia:");
+            showMessaje("----------------------------------------");
+            suggested.forEach(r -> {
+                String baseInfo = sistem.getOperationalBases().stream()
+                    .filter(b -> b.getId().equals(r.getBaseOrigin()))
+                    .map(OperationalBase::getName)
+                    .findFirst()
+                    .orElse("Base no encontrada");
+                showMessaje(String.format("- %s (ID: %d) ", 
+                    r.getType(), r.getId()));
+            });
+        } else {
+            showMessaje("\nNo hay recursos sugeridos para esta emergencia.");
+        }
+    }
+
+    private String getEmergencyTypeDescription(String resourceType) {
+        if (resourceType.contains("Bombero")) {
+            return "Emergencia por Incendio";
+        } else if (resourceType.contains("Paramédico") || resourceType.contains("Ambulancia")) {
+            return "Emergencia por Accidente Vehicular";
+        } else if (resourceType.contains("Policía") || resourceType.contains("Patrulla")) {
+            return "Emergencia por Robo";
+        }
+        return "Emergencia";
+    }
+
+    public List<Resource> requestResourceSelection(List<Resource> available) {
+        List<Resource> selected = new ArrayList<>();
+        showMessaje("\nRecursos disponibles:");
+        for (int i = 0; i < available.size(); i++) {
+            Resource r = available.get(i);
+            showMessaje(String.format("%d. %s", i + 1, r.getType()));
+        }
+
+        showMessaje("\nIngrese los números de los recursos a asignar (separados por coma): ");
+        String[] selections = scanner.nextLine().split(",");
+        
+        for (String selection : selections) {
+            try {
+                int index = Integer.parseInt(selection.trim()) - 1;
+                if (index >= 0 && index < available.size()) {
+                    selected.add(available.get(index));
+                }
+            } catch (NumberFormatException e) {
+                showMessaje("Entrada inválida: " + selection);
+            }
+        }
+        
+        return selected;
+    }
+
+    public boolean requestConfirmation(String message) {
+        System.out.print(message);
+        String input = scanner.nextLine().trim().toUpperCase();
+        return input.equals("S");
+    }
+
+    public void showAssignmentSummary(Emergency emergency, List<Resource> assignedResources) {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Resumen de Asignación");
+        showMessaje("Emergencia atendida exitosamente:");
+        showMessaje(String.format("Tipo: %s | Gravedad: %s | Ubicación: %s",
+            emergency.getTipo(), emergency.getNivelGravedad(), obtenerNombreUbicacion(emergency)));
+        showMessaje("\nRecursos asignados:");
+        assignedResources.forEach(r -> {
+            String baseInfo = sistem.getOperationalBases().stream()
+                .filter(b -> b.getId().equals(r.getBaseOrigin()))
+                .map(OperationalBase::getName)
+                .findFirst()
+                .orElse("Base no encontrada");
+            showMessaje(String.format("- %s (ID: %d) | Base: %s", 
+                r.getType(), r.getId(), baseInfo));
+        });
+        waitForEnter("Presione Enter para continuar...");
+    }
+
+    private String obtenerNombreUbicacion(Emergency e) {
+        return sistem.getReferencePoints().stream()
+            .filter(point -> point.getLocation().getLatitude() == e.getUbicacion().getLatitude()
+                && point.getLocation().getLongitude() == e.getUbicacion().getLongitud())
+            .map(PredefinedLocation::getNombre)
+            .findFirst()
+            .orElse("Ubicación no registrada");
     }
 
 }

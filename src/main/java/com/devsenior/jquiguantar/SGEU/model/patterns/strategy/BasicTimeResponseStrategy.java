@@ -20,7 +20,7 @@ public class BasicTimeResponseStrategy implements TimeCalculation {
 
     @Override
     public double CalculateTime(EmergencyType type, Location emergencyLocation) {
-        Utilities.printTitle("Calculo de Tiempo Estimado de Respuesta");
+        Utilities.printTitle("Resumen del Incidente");
         System.out.println("Tipo de emergencia: " + type);
         
         // Buscar el nombre del lugar de la emergencia
@@ -31,7 +31,7 @@ public class BasicTimeResponseStrategy implements TimeCalculation {
             .findFirst()
             .orElse("Ubicación no registrada");
             
-        System.out.println("Ubicación de emergencia: " + locationName + 
+        System.out.println("Ubicación: " + locationName + 
             " (Lat=" + String.format("%.6f", emergencyLocation.getLatitude()) + 
             ", Lon=" + String.format("%.6f", emergencyLocation.getLongitud()) + ")");
 
@@ -60,7 +60,7 @@ public class BasicTimeResponseStrategy implements TimeCalculation {
 
         double result = minTime.orElse(-1.0);
         System.out.println("\nTiempo mínimo de respuesta calculado: " + String.format("%.2f", result) + " minutos");
-        System.out.println("\nPresione Enter para continuar...");
+        System.out.println("\nPresione Enter para confirmar Registro de Emergencia...");
         scanner.nextLine();
         Utilities.cleanConsole();
         

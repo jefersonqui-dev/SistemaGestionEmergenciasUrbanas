@@ -1,34 +1,25 @@
 package com.devsenior.jquiguantar.SGEU.controller;
 
-// import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 import com.devsenior.jquiguantar.SGEU.view.ConsolaView;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.BasicTimeResponseStrategy;
-import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PriorizationStrategy;
 import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.TimeCalculation;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
-import com.devsenior.jquiguantar.SGEU.model.config.OperationalBase;
 import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
-import com.devsenior.jquiguantar.SGEU.model.interfaces.Reply;
-import com.devsenior.jquiguantar.SGEU.model.strategy.ReplyFirefighter;
-import com.devsenior.jquiguantar.SGEU.model.patterns.strategy.PriorityByProximity;
 import java.util.List;
 
 public class MainApp {
     private static ConsolaView view;
-    // private static EmergencySistem sistem;
     private static TimeCalculation timeCalculation;
     private static EmergencySistem sistem;
-    private static PriorizationStrategy strategy;
 
     public static void main(String[] args) {
         view = new ConsolaView();
         timeCalculation = new BasicTimeResponseStrategy();
         sistem = EmergencySistem.getInstance();
-        strategy = new PriorityByProximity();
         int mainOption;
         do {
             view.showMenu();
@@ -75,11 +66,56 @@ public class MainApp {
     }
 
     private static void handleEmergencies() {
-        List<Emergency> active = sistem.getActiveEmergencies();
-        List<OperationalBase> bases = sistem.getOperationalBases();
-        List<Emergency> prioritize = strategy.prioritize(active, bases);
+        if (!sistem.hasActiveEmergencies()) {
+            view.showNoActiveEmergencies();
+            return;
+        }
 
-        Reply reply = new ReplyFirefighter();
-        reply.respondToEmergency(prioritize.get(0));
+        // Mostrar emergencias ordenadas por prioridad
+        List<Emergency> orderedEmergencies = sistem.getEmergencyOrdered();
+        if (orderedEmergencies.isEmpty()) {
+            view.showMessaje("No hay emergencias activas para atender.");
+            return;
+        }
+
+        view.displayEmergencySummary(orderedEmergencies);
+        view.waitForEnter("Presione Enter para continuar...");
+
+        // Obtener la emergencia de mayor prioridad
+        Emergency highestPriority = orderedEmergencies.get(0);
+        if (highestPriority == null) {
+            view.showMessaje("No hay emergencias activas para atender.");
+            return;
+        }
+
+        // Mostrar resumen de la emergencia
+        view.showEmergencySummary(highestPriority);
+
+        // Obtener y mostrar recursos disponibles y sugeridos
+        List<Resource> available = sistem.getAvailableResourcesForEmergency(highestPriority);
+        List<Resource> suggested = sistem.suggestResourcesForEmergency(highestPriority);
+        
+        if (available.isEmpty()) {
+            view.showMessaje("No hay recursos disponibles para atender esta emergencia.");
+            return;
+        }
+
+        view.showAvailableAndSuggestedResources(available, suggested);
+
+        // Solicitar confirmación para asignar recursos sugeridos
+        boolean confirm = view.requestConfirmation("¿Desea asignar los recursos sugeridos? (S/N): ");
+        List<Resource> toAssign;
+        if (confirm) {
+            toAssign = suggested;
+        } else {
+            toAssign = view.requestResourceSelection(available);
+        }
+
+        // Asignar recursos y mostrar resumen
+        if (sistem.assignResourcesToEmergency(highestPriority, toAssign)) {
+            view.showAssignmentSummary(highestPriority, toAssign);
+        } else {
+            view.showMessaje("No se pudieron asignar los recursos a la emergencia.");
+        }
     }
 }
