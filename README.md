@@ -3,6 +3,7 @@
 ## 📝 Descripción
 El Sistema de Gestión de Emergencias Urbanas (SGEU) es una aplicación Java diseñada para gestionar y coordinar la respuesta a emergencias urbanas de manera eficiente. El sistema permite registrar emergencias, asignar recursos, y monitorear el estado de las situaciones de emergencia en tiempo real.
 image.png
+![image](https://github.com/user-attachments/assets/d5cecd70-70a2-48cd-a93c-a920db5e1673)
 
 ## 🎯 Objetivos
 -  Gestionar eficientemente las emergencias urbanas
