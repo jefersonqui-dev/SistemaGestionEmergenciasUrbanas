@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 public class Utilities {
     public static void printTitle(String title, String option) {
-        String separator = "=============================================================";
+        String separator = "-------------------------------------------------------------";
         System.out.println("\n" + separator);
         String mensaje;
         if (option != null && !option.isEmpty()) {
