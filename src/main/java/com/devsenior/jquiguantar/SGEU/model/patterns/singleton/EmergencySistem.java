@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.devsenior.jquiguantar.SGEU.model.config.LocationSettings;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.Emergency;
-// import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
+import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.SeverityLevel;
 import com.devsenior.jquiguantar.SGEU.model.resourcess.Resource;
 import java.io.IOException;
@@ -16,11 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 // import java.util.Comparator;
 import java.util.stream.Collectors;
-
+import java.util.Map;
 
 public class EmergencySistem {
     private static EmergencySistem instance;
-
     private List<PredefinedLocation> referencePoints;
     private List<OperationalBase> operationalBases;
     private List<Emergency> emergencies;
@@ -130,7 +129,7 @@ public class EmergencySistem {
         return operationalBases;
     }
 
-    public void registerEmergency(Emergency emergency){
+    public void registerEmergency(Emergency emergency) {
         if (emergency != null) {
             emergencies.add(emergency);
         }
@@ -503,5 +502,66 @@ public class EmergencySistem {
         return usarSugeridos ? 
             suggestResourcesForEmergency(emergency) : 
             getAvailableResourcesForEmergency(emergency);
+    }
+
+    public Map<EmergencyType, Integer> getEmergenciasAtendidasPorTipo() {
+        return emergencies.stream()
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.ATENDIDA)
+            .collect(Collectors.groupingBy(
+                Emergency::getTipo,
+                Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+            ));
+    }
+
+    public Map<EmergencyType, Double> getTiempoPromedioRespuestaPorTipo() {
+        return emergencies.stream()
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.ATENDIDA)
+            .collect(Collectors.groupingBy(
+                Emergency::getTipo,
+                Collectors.averagingDouble(e -> 
+                    java.time.Duration.between(e.getFechaRegistro(), e.getFechaAtencion()).toMinutes()
+                )
+            ));
+    }
+
+    public Map<String, Integer> getRecursosUtilizados() {
+        return resources.stream()
+            .filter(r -> !r.isAvailable())
+            .collect(Collectors.groupingBy(
+                Resource::getType,
+                Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+            ));
+    }
+
+    public Map<String, Integer> getRecursosDisponibles() {
+        return resources.stream()
+            .filter(Resource::isAvailable)
+            .collect(Collectors.groupingBy(
+                Resource::getType,
+                Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+            ));
+    }
+
+    public double getPorcentajeRecursosUtilizados() {
+        long totalRecursos = resources.size();
+        if (totalRecursos == 0) return 0.0;
+        long recursosEnUso = resources.stream().filter(r -> !r.isAvailable()).count();
+        return (double) recursosEnUso / totalRecursos * 100.0;
+    }
+
+    public int getTotalEmergenciasAtendidas() {
+        return (int) emergencies.stream()
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.ATENDIDA)
+            .count();
+    }
+
+    public double getTiempoPromedioRespuesta() {
+        return emergencies.stream()
+            .filter(e -> e.getEstado() == Emergency.EstadoEmergencia.ATENDIDA)
+            .mapToDouble(e -> 
+                java.time.Duration.between(e.getFechaRegistro(), e.getFechaAtencion()).toMinutes()
+            )
+            .average()
+            .orElse(0.0);
     }
 }

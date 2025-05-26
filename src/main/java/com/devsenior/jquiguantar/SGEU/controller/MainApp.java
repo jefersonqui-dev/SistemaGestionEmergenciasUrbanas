@@ -83,7 +83,7 @@ public class MainApp {
         sistem.registerEmergency(newEmergency);
     }
 
-    private static void showEmergenciesActive() {
+    private static void showEmergenciesActive() { 
         List<Emergency> activeEmergencies = sistem.getActiveEmergencies();
         view.displayActiveEmergencies(activeEmergencies);
     }
@@ -150,6 +150,6 @@ public class MainApp {
     }
 
     private static void showStatistics() {
-        // view.mostrarEstadisticas();
+        view.mostrarEstadisticas();
     }
 }
