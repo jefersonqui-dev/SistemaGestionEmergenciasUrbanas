@@ -94,6 +94,16 @@ public class Emergency {
         return tiempoRestante;
     }
 
+    public double getPorcentajeProgreso() {
+        if (estado == EstadoEmergencia.ATENDIDA) {
+            return 100.0;
+        } else if (estado == EstadoEmergencia.PENDIENTE) {
+            return 0.0;
+        } else {
+            return ((tiempoEstimado - tiempoRestante) / tiempoEstimado) * 100.0;
+        }
+    }
+
     public void actualizarTiempoRestante(double tiempoTranscurrido) {
         this.tiempoRestante = Math.max(0, this.tiempoRestante - tiempoTranscurrido);
         if (this.tiempoRestante <= 0) {

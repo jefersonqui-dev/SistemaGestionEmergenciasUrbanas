@@ -246,7 +246,8 @@ public class ConsolaView {
                 } else {
                     int minutos = (int) emergency.getTiempoRestante();
                     int segundos = (int) ((emergency.getTiempoRestante() - minutos) * 60);
-                    showMessaje("Tiempo Restante: " + minutos + " minutos y " + segundos + " segundos");
+                    showMessaje(String.format("Tiempo Restante: %d minutos y %d segundos (%.1f%% completado)", 
+                        minutos, segundos, emergency.getPorcentajeProgreso()));
                 }
                 
                 // Mostrar recursos asignados
@@ -834,7 +835,7 @@ public class ConsolaView {
                 return;
         }
 
-        Utilities.pressEnterToContinue(scanner);
+        // Utilities.pressEnterToContinue(scanner); // Eliminado para evitar problemas de concurrencia
     }
 
     private void mostrarSeleccionRecargaRecursos(List<Resource> recursos) {
@@ -937,7 +938,7 @@ public class ConsolaView {
             }
             
             showMessaje("\nLa atención de emergencias está pausada hasta que se complete la recarga.");
-            Utilities.pressEnterToContinue(scanner);
+            // Utilities.pressEnterToContinue(scanner); // Eliminado para evitar problemas de concurrencia
         }
     }
 
@@ -968,6 +969,72 @@ public class ConsolaView {
     public void mostrarMensajeNoHayRecursos() {
         showMessaje("No hay recursos disponibles para atender esta emergencia.");
         waitForEnter("Presione Enter para continuar...");
+    }
+
+    public void mostrarEstadisticas() {
+        Utilities.cleanConsole();
+        Utilities.printTitle("Estadísticas del Día");
+
+        // 1. Emergencias atendidas por tipo
+        showMessaje("\n=== Emergencias Atendidas por Tipo ===");
+        Map<EmergencyType, Integer> emergenciasPorTipo = sistem.getEmergenciasAtendidasPorTipo();
+        if (emergenciasPorTipo.isEmpty()) {
+            showMessaje("No hay emergencias atendidas en el día.");
+        } else {
+            emergenciasPorTipo.forEach((tipo, cantidad) -> 
+                showMessaje(String.format("%s: %d emergencias", tipo.getDescription(), cantidad))
+            );
+        }
+
+        // 2. Tiempo promedio de respuesta por tipo
+        showMessaje("\n=== Tiempo Promedio de Respuesta por Tipo ===");
+        Map<EmergencyType, Double> tiempoPromedioPorTipo = sistem.getTiempoPromedioRespuestaPorTipo();
+        if (tiempoPromedioPorTipo.isEmpty()) {
+            showMessaje("No hay datos de tiempo de respuesta disponibles.");
+        } else {
+            tiempoPromedioPorTipo.forEach((tipo, tiempo) -> 
+                showMessaje(String.format("%s: %.2f minutos", tipo.getDescription(), tiempo))
+            );
+        }
+
+        // 3. Recursos utilizados vs disponibles
+        showMessaje("\n=== Estado de Recursos ===");
+        Map<String, Integer> recursosUtilizados = sistem.getRecursosUtilizados();
+        Map<String, Integer> recursosDisponibles = sistem.getRecursosDisponibles();
+        
+        if (recursosUtilizados.isEmpty() && recursosDisponibles.isEmpty()) {
+            showMessaje("No hay recursos registrados en el sistema.");
+        } else {
+            showMessaje("Recursos en uso:");
+            recursosUtilizados.forEach((tipo, cantidad) -> 
+                showMessaje(String.format("  %s: %d unidades", tipo, cantidad))
+            );
+            
+            showMessaje("\nRecursos disponibles:");
+            recursosDisponibles.forEach((tipo, cantidad) -> 
+                showMessaje(String.format("  %s: %d unidades", tipo, cantidad))
+            );
+        }
+
+        // 4. Estadísticas generales
+        showMessaje("\n=== Estadísticas Generales ===");
+        showMessaje(String.format("Total de emergencias atendidas: %d", sistem.getTotalEmergenciasAtendidas()));
+        showMessaje(String.format("Tiempo promedio de respuesta: %.2f minutos", sistem.getTiempoPromedioRespuesta()));
+        showMessaje(String.format("Porcentaje de recursos utilizados: %.1f%%", sistem.getPorcentajeRecursosUtilizados()));
+
+        // 5. Recomendaciones
+        showMessaje("\n=== Recomendaciones ===");
+        if (sistem.getPorcentajeRecursosUtilizados() > 80) {
+            showMessaje("⚠️ Alta utilización de recursos: Considere aumentar la flota de recursos disponibles.");
+        }
+        if (sistem.getTiempoPromedioRespuesta() > 30) {
+            showMessaje("⚠️ Tiempo de respuesta elevado: Evalúe la distribución de recursos y bases operativas.");
+        }
+        if (sistem.getTotalEmergenciasAtendidas() > 0) {
+            showMessaje("✅ El sistema está operando y atendiendo emergencias efectivamente.");
+        }
+
+        waitForEnter("\nPresione Enter para continuar...");
     }
 
 }
