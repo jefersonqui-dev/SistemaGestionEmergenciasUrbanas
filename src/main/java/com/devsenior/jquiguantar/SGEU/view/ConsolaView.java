@@ -333,7 +333,8 @@ public class ConsolaView {
                                     resource.getType(),
                                     1, // Cantidad individual
                                     resource.isAvailable() ? "Disponible" : "En uso",
-                                    String.format("- %s (ID: %d)", resource.getType(), resource.getId()),
+                                    // String.format("- %s (ID: %d)", resource.getType(), resource.getId()),
+                                    "-",
                                     baseInfo));
                             }
                         }
@@ -548,7 +549,7 @@ public class ConsolaView {
                 showMessaje(String.format("- %s (ID: %d)", r.getType(), r.getId()));
             }
         });
-        waitForEnter("Presione Enter para continuar...");
+        // waitForEnter("Presione Enter para continuar...");
     }
 
     private String obtenerNombreUbicacion(Emergency e) {
@@ -603,15 +604,20 @@ public class ConsolaView {
         // Mostrar recursos que necesitan recarga
         List<Resource> recursosNecesitanRecarga = sistem.getRecursosNecesitanRecarga();
         if (!recursosNecesitanRecarga.isEmpty()) {
-            showMessaje("\nRECURSOS QUE NECESITAN RECARGA:");
+            showMessaje("\nRecursos que necesitan recarga:");
             for (Resource recurso : recursosNecesitanRecarga) {
+                String baseInfo = sistem.getOperationalBases().stream()
+                    .filter(b -> b.getId().equals(recurso.getBaseOrigin()))
+                    .map(OperationalBase::getName)
+                    .findFirst()
+                    .orElse("Base no encontrada");
+                String estado = recurso.isAvailable() ? "Disponible" : "En uso";
                 if (esVehiculo(recurso)) {
-                    showMessaje("  - " + recurso.getType() + 
-                        " (ID: " + recurso.getId() + ")" +
-                        " - Combustible: " + String.format("%.1f%%", recurso.getFuel()));
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s | Combustible: %.1f%%",
+                        recurso.getType(), recurso.getId(), baseInfo, estado, recurso.getFuel()));
                 } else {
-                    showMessaje("  - " + recurso.getType() + 
-                        " (ID: " + recurso.getId() + ")");
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s",
+                        recurso.getType(), recurso.getId(), baseInfo, estado));
                 }
             }
         }
@@ -783,11 +789,18 @@ public class ConsolaView {
         if (!recursosNecesitanRecarga.isEmpty()) {
             showMessaje("\nRecursos que necesitan recarga:");
             for (Resource recurso : recursosNecesitanRecarga) {
+                String baseInfo = sistem.getOperationalBases().stream()
+                    .filter(b -> b.getId().equals(recurso.getBaseOrigin()))
+                    .map(OperationalBase::getName)
+                    .findFirst()
+                    .orElse("Base no encontrada");
+                String estado = recurso.isAvailable() ? "Disponible" : "En uso";
                 if (esVehiculo(recurso)) {
-                    showMessaje(String.format("- %s (Combustible: %.1f%%)", 
-                        recurso.toString(), recurso.getFuel()));
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s | Combustible: %.1f%%",
+                        recurso.getType(), recurso.getId(), baseInfo, estado, recurso.getFuel()));
                 } else {
-                    showMessaje(String.format("- %s", recurso.toString()));
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s",
+                        recurso.getType(), recurso.getId(), baseInfo, estado));
                 }
             }
         }
@@ -870,11 +883,18 @@ public class ConsolaView {
             
             showMessaje("\nLos siguientes recursos tienen el combustible por debajo del 20%:");
             for (Resource recurso : recursosConCombustibleBajo) {
+                String baseInfo = sistem.getOperationalBases().stream()
+                    .filter(b -> b.getId().equals(recurso.getBaseOrigin()))
+                    .map(OperationalBase::getName)
+                    .findFirst()
+                    .orElse("Base no encontrada");
+                String estado = recurso.isAvailable() ? "Disponible" : "En uso";
                 if (esVehiculo(recurso)) {
-                    showMessaje(String.format("- %s (Combustible: %.1f%%)", 
-                        recurso.toString(), recurso.getFuel()));
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s | Combustible: %.1f%%",
+                        recurso.getType(), recurso.getId(), baseInfo, estado, recurso.getFuel()));
                 } else {
-                    showMessaje(String.format("- %s", recurso.toString()));
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s",
+                        recurso.getType(), recurso.getId(), baseInfo, estado));
                 }
             }
             
@@ -901,7 +921,19 @@ public class ConsolaView {
             
             showMessaje("\nRecursos en proceso de recarga:");
             for (Resource recurso : recursosEnRecarga) {
-                showMessaje(String.format("- %s", recurso.toString()));
+                String baseInfo = sistem.getOperationalBases().stream()
+                    .filter(b -> b.getId().equals(recurso.getBaseOrigin()))
+                    .map(OperationalBase::getName)
+                    .findFirst()
+                    .orElse("Base no encontrada");
+                String estado = recurso.isAvailable() ? "Disponible" : "En uso";
+                if (esVehiculo(recurso)) {
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s | Combustible: %.1f%% | En recarga: %.1f minutos restantes",
+                        recurso.getType(), recurso.getId(), baseInfo, estado, recurso.getFuel(), recurso.getTiempoRestanteRecarga()));
+                } else {
+                    showMessaje(String.format("- %s (ID: %d) | Base: %s | Estado: %s | En recarga: %.1f minutos restantes",
+                        recurso.getType(), recurso.getId(), baseInfo, estado, recurso.getTiempoRestanteRecarga()));
+                }
             }
             
             showMessaje("\nLa atención de emergencias está pausada hasta que se complete la recarga.");

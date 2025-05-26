@@ -3,11 +3,16 @@ package com.devsenior.jquiguantar.SGEU.model.patterns.strategy;
 import com.devsenior.jquiguantar.SGEU.model.patterns.singleton.EmergencySistem;
 import com.devsenior.jquiguantar.SGEU.model.util.Location;
 import com.devsenior.jquiguantar.SGEU.model.util.Utilities;
+import com.devsenior.jquiguantar.SGEU.view.ConsolaView;
 import com.devsenior.jquiguantar.SGEU.model.emergencies.EmergencyType;
 import com.devsenior.jquiguantar.SGEU.model.config.OperationalBase;
 import com.devsenior.jquiguantar.SGEU.model.config.PredefinedLocation;
 import java.util.OptionalDouble;
 import java.util.Scanner;
+// import java.util.concurrent.ConcurrentHashMap;
+// import com.devsenior.jquiguantar.SGEU.view.ConsolaView;
+
+
 
 public class BasicTimeResponseStrategy implements TimeCalculation {
     private EmergencySistem emergencySistem;
@@ -34,16 +39,17 @@ public class BasicTimeResponseStrategy implements TimeCalculation {
         System.out.println("Ubicación: " + locationName + 
             " (Lat=" + String.format("%.6f", emergencyLocation.getLatitude()) + 
             ", Lon=" + String.format("%.6f", emergencyLocation.getLongitud()) + ")");
-
+        ConsolaView LINE = new ConsolaView();
         String serviceTypeNeeded = mapEmergencyTypeToServiceType(type);
         System.out.println("Tipo de servicio requerido: " + serviceTypeNeeded);
+        LINE.showMessaje("-------------------------------------------------------------");
 
         if (serviceTypeNeeded.isEmpty()) {
             System.err.println("Tipo de emergencia no mapeado");
             return -1.0;
         }
 
-        System.out.println("\nBases operativas disponibles para " + serviceTypeNeeded + ":");
+        System.out.println("Bases operativas disponibles para " + serviceTypeNeeded + ":");
         emergencySistem.getOperationalBases().stream()
             .filter(base -> base.getServiceType().equals(serviceTypeNeeded))
             .forEach(base -> {
@@ -51,6 +57,7 @@ public class BasicTimeResponseStrategy implements TimeCalculation {
                 System.out.println("  Ubicación: Lat=" + String.format("%.6f", base.getLocation().getLatitude()) + 
                     ", Lon=" + String.format("%.6f", base.getLocation().getLongitud()));
                 System.out.println("  Velocidad promedio: " + base.getAverageSpeed() + " km/h");
+                LINE.showMessaje("-------------------------------------------------------------");
             });
 
         OptionalDouble minTime = emergencySistem.getOperationalBases().stream()
