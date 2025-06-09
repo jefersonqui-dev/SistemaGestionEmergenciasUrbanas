@@ -413,7 +413,7 @@ public class ConsolaView {
         }
 
         showMessaje("\nEmergencias Activas (Ordenadas por Prioridad):");
-        showMessaje("----------------------------------------");
+        showMessaje("------------------------------------------------------");
         for(int i = 0; i < emergencies.size(); i++) {
             Emergency emergency = emergencies.get(i);
             showMessaje(String.format("%d. %s - %s - %s",
@@ -422,7 +422,7 @@ public class ConsolaView {
                 emergency.getNivelGravedad(),
                 obtenerNombreUbicacion(emergency)));
         }
-        showMessaje("----------------------------------------");
+        showMessaje("------------------------------------------------------");
     }
 
     public void showEmergencySummary(Emergency emergency) {
@@ -445,7 +445,7 @@ public class ConsolaView {
         }
 
         showMessaje("\nRecursos Disponibles para " + getEmergencyTypeDescription(available.get(0).getType()) + ":");
-        showMessaje("----------------------------------------");
+        showMessaje("------------------------------------------------------");
         
         Map<String, List<Resource>> availableByType = available.stream()
             .collect(Collectors.groupingBy(Resource::getType));
@@ -469,7 +469,7 @@ public class ConsolaView {
 
         if (!suggested.isEmpty()) {
             showMessaje("\nRecursos Sugeridos para esta Emergencia:");
-            showMessaje("----------------------------------------");
+            showMessaje("------------------------------------------------------");
             suggested.forEach(r -> {
                 String baseInfo = sistem.getOperationalBases().stream()
                     .filter(b -> b.getId().equals(r.getBaseOrigin()))
@@ -976,7 +976,8 @@ public class ConsolaView {
         Utilities.printTitle("Estadísticas del Día");
 
         // 1. Emergencias atendidas por tipo
-        showMessaje("\n=== Emergencias Atendidas por Tipo ===");
+        showMessaje("\nEMERGENCIAS ATENDIDAS POR TIPO");
+        showMessaje("------------------------------------------------------");
         Map<EmergencyType, Integer> emergenciasPorTipo = sistem.getEmergenciasAtendidasPorTipo();
         if (emergenciasPorTipo.isEmpty()) {
             showMessaje("No hay emergencias atendidas en el día.");
@@ -986,19 +987,9 @@ public class ConsolaView {
             );
         }
 
-        // 2. Tiempo promedio de respuesta por tipo
-        showMessaje("\n=== Tiempo Promedio de Respuesta por Tipo ===");
-        Map<EmergencyType, Double> tiempoPromedioPorTipo = sistem.getTiempoPromedioRespuestaPorTipo();
-        if (tiempoPromedioPorTipo.isEmpty()) {
-            showMessaje("No hay datos de tiempo de respuesta disponibles.");
-        } else {
-            tiempoPromedioPorTipo.forEach((tipo, tiempo) -> 
-                showMessaje(String.format("%s: %.2f minutos", tipo.getDescription(), tiempo))
-            );
-        }
-
-        // 3. Recursos utilizados vs disponibles
-        showMessaje("\n=== Estado de Recursos ===");
+        // 2. Recursos utilizados vs disponibles
+        showMessaje("\nESTADO DE RECURSOS");
+        showMessaje("------------------------------------------------------");
         Map<String, Integer> recursosUtilizados = sistem.getRecursosUtilizados();
         Map<String, Integer> recursosDisponibles = sistem.getRecursosDisponibles();
         
@@ -1016,24 +1007,27 @@ public class ConsolaView {
             );
         }
 
-        // 4. Estadísticas generales
-        showMessaje("\n=== Estadísticas Generales ===");
+        // 3. Estadísticas generales
+        showMessaje("\nESTADÍSTICAS GENERALES");
+        showMessaje("------------------------------------------------------");
         showMessaje(String.format("Total de emergencias atendidas: %d", sistem.getTotalEmergenciasAtendidas()));
         showMessaje(String.format("Tiempo promedio de respuesta: %.2f minutos", sistem.getTiempoPromedioRespuesta()));
         showMessaje(String.format("Porcentaje de recursos utilizados: %.1f%%", sistem.getPorcentajeRecursosUtilizados()));
 
-        // 5. Recomendaciones
-        showMessaje("\n=== Recomendaciones ===");
+        // 4. Recomendaciones
+        showMessaje("\nRECOMENDACIONES");
+        showMessaje("------------------------------------------------------");
         if (sistem.getPorcentajeRecursosUtilizados() > 80) {
-            showMessaje("⚠️ Alta utilización de recursos: Considere aumentar la flota de recursos disponibles.");
+            showMessaje("Alta utilización de recursos: Considere aumentar la flota de recursos disponibles.");
         }
         if (sistem.getTiempoPromedioRespuesta() > 30) {
-            showMessaje("⚠️ Tiempo de respuesta elevado: Evalúe la distribución de recursos y bases operativas.");
+            showMessaje("Tiempo de respuesta elevado: Evalúe la distribución de recursos y bases operativas.");
         }
         if (sistem.getTotalEmergenciasAtendidas() > 0) {
-            showMessaje("✅ El sistema está operando y atendiendo emergencias efectivamente.");
+            showMessaje("El sistema está operando y atendiendo emergencias efectivamente.");
         }
 
+        showMessaje("------------------------------------------------------");
         waitForEnter("\nPresione Enter para continuar...");
     }
 
